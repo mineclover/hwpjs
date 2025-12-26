@@ -21,6 +21,10 @@
       "default": "./dist/browser.js",
       "types": "./dist/index.d.ts"
     },
+    "./table-schema": {
+      "types": "./src/table-schema.ts",
+      "default": "./src/table-schema.ts"
+    },
     "./types/*": "./types/*",
     "./package.json": "./package.json"
   },

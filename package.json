@@ -36,6 +36,8 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.4.1",
+    "cross-env": "^10.1.0",
+    "emnapi": "^1.7.1",
     "oxfmt": "^0.14.0",
     "oxlint": "^1.29.0"
   },

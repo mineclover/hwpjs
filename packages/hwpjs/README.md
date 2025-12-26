@@ -193,6 +193,89 @@ const header = JSON.parse(headerString);
 console.log(header.version);
 ```
 
+## TypeScript 타입
+
+`toJson()` 반환값에 대한 TypeScript 타입을 제공합니다. 타입은 실제 HWP 파일 샘플로부터 자동 생성됩니다.
+
+### 타입 임포트
+
+```typescript
+import type {
+  HwpDocument,
+  FileHeader,
+  DocInfo,
+  BodyText,
+  Section,
+  SectionParagraph as Paragraph,
+  PurpleRecord as ParagraphRecord,
+  Table,
+  TableCell,
+  CellAttributes,
+} from '@ohah/hwpjs/types/hwp-document';
+```
+
+### 사용 예시
+
+```typescript
+import { toJson } from '@ohah/hwpjs';
+import type { HwpDocument, Table } from '@ohah/hwpjs/types/hwp-document';
+
+const json = toJson(fileBuffer);
+const doc: HwpDocument = JSON.parse(json);
+
+// 문서 정보 접근
+console.log(doc.file_header.version);
+console.log(doc.doc_info.document_properties);
+
+// 본문 탐색
+doc.body_text.sections.forEach(section => {
+  section.paragraphs.forEach(para => {
+    // 텍스트 출력
+    console.log(para.text);
+
+    // 테이블 등 컨트롤 처리
+    para.records?.forEach(record => {
+      if (record.type === 'Table') {
+        const table = record.data as Table;
+        table.cells.forEach(cell => {
+          console.log(cell.paragraphs);
+        });
+      }
+    });
+  });
+});
+```
+
+### 주요 타입
+
+| 타입 | 설명 |
+|------|------|
+| `HwpDocument` | 전체 HWP 문서 구조 |
+| `FileHeader` | 파일 헤더 (버전, 플래그 등) |
+| `DocInfo` | 문서 정보 (폰트, 스타일 등) |
+| `BodyText` | 본문 데이터 |
+| `Section` | 섹션 (페이지 정의 포함) |
+| `SectionParagraph` | 문단 |
+| `PurpleRecord` | 문단 내 레코드 (Table, Shape 등) |
+| `Table` | 표 |
+| `TableCell` | 표 셀 |
+
+### 타입 재생성
+
+Rust 코드 변경 후 타입을 업데이트하려면:
+
+```bash
+cd packages/hwpjs
+bun run generate:types
+```
+
+이 명령은 `crates/hwp-core/tests/fixtures/` 내 모든 HWP 파일을 분석하여 타입을 재생성합니다.
+
+**참고**: 타입은 quicktype으로 JSON 샘플에서 추론됩니다. 일부 제한사항:
+- `Purple*`, `Fluffy*` 등의 이름은 충돌 회피용 자동 생성 이름입니다
+- 샘플에 없는 값은 타입에 포함되지 않습니다 (더 많은 fixture 추가로 개선 가능)
+- 정확한 타입이 필요하면 Rust 코드에 `schemars` 또는 `ts-rs` 적용을 고려하세요
+
 ## 예제
 
 더 자세한 예제는 [예제 디렉토리](../../examples)를 참고하세요.
