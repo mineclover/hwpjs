@@ -34,7 +34,9 @@
     "build:docs": "bun run --filter=@hwpjs/documents build",
     "build:node": "bun run --filter=@ohah/hwpjs build",
     "build:crabygen": "bun run --filter=@hwpjs/hwpjs build:crabygen",
-    "build:react-native": "bun run --filter=@hwpjs/hwpjs build:react-native"
+    "build:react-native": "bun run --filter=@hwpjs/hwpjs build:react-native",
+    "pipeline:parse-contents": "bun scripts/parse-contents-list.ts",
+    "pipeline:validate": "bun scripts/validate-extraction.ts pipeline/stage1/anomalies/anomalies.json pipeline/contents-list.json pipeline/stage1/validation"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.4.1",
