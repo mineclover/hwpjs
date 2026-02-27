@@ -7,6 +7,7 @@
 import type { TableSchema } from '../table-schema';
 import type {
   FieldDef,
+  AnchorConfig,
   ExtractedField,
   ExtractedCheckboxCluster,
   ExtractedTableRows,
@@ -144,15 +145,19 @@ function extractRowContainsLabel(field: FieldDef, tables: TableSchema[]): Extrac
  * fallback anchor로 올바른 테이블을 찾을 수 있습니다.
  */
 function extractRowsAfterHeader(field: FieldDef, tables: TableSchema[]): ExtractedField {
-  const effectiveAnchors = [
-    ...(field.extractor.anchor ? [field.extractor.anchor] : []),
-    ...(field.extractor.anchors ?? []),
-  ];
-  if (effectiveAnchors.length === 0) return { found: false };
+  // anchors_config가 있으면 우선 사용, 없으면 anchor/anchors에서 구성
+  const anchorConfigs: AnchorConfig[] = field.extractor.anchors_config
+    ?? [
+        ...(field.extractor.anchor ? [{ anchor: field.extractor.anchor }] : []),
+        ...(field.extractor.anchors ?? []).map(a => ({ anchor: a })),
+      ];
+
+  if (anchorConfigs.length === 0) return { found: false };
 
   const minRows = field.extractor.min_rows ?? 0;
 
-  for (const anchor of effectiveAnchors) {
+  for (const cfg of anchorConfigs) {
+    const anchor = cfg.anchor;
     for (let ti = 0; ti < tables.length; ti++) {
       const tableIdx = field.extractor.table_index;
       if (tableIdx !== undefined && tableIdx !== ti) continue;
@@ -177,9 +182,16 @@ function extractRowsAfterHeader(field: FieldDef, tables: TableSchema[]): Extract
       // min_rows 미만이면 이 매칭을 건너뜁니다 (다음 anchor 또는 다음 테이블로)
       if (dataRows.length < minRows) continue;
 
+      // item_header_pattern: anchor별 설정 우선, 없으면 전역 설정 사용
+      const patternStr = cfg.item_header_pattern ?? field.extractor.item_header_pattern;
+      const itemPattern = patternStr ? new RegExp(patternStr) : null;
+      const count = itemPattern
+        ? dataRows.filter(r => itemPattern.test(r[0] ?? '')).length
+        : dataRows.length;
+
       return {
         found: true,
-        count: dataRows.length,
+        count,
         rows: dataRows,
         location: { table_index: ti, row_index: headerIdx + 1 },
       } satisfies ExtractedTableRows;
