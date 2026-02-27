@@ -1,0 +1,22 @@
+{
+  "name": "@ohah/hwpjs-adapter",
+  "version": "0.1.0",
+  "description": "TableSchema adapter and anomaly detection for @ohah/hwpjs",
+  "type": "module",
+  "exports": {
+    "./table-schema": {
+      "types": "./src/table-schema.ts",
+      "default": "./src/table-schema.ts"
+    },
+    "./anomaly": {
+      "types": "./src/anomaly/index.ts",
+      "default": "./src/anomaly/index.ts"
+    }
+  },
+  "dependencies": {
+    "@ohah/hwpjs": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0"
+  }
+}
