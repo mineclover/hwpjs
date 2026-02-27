@@ -1,0 +1,3 @@
+[submodule "packages/table-manager"]
+	path = packages/table-manager
+	url = https://github.com/mineclover/table-manager
