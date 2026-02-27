@@ -15,6 +15,10 @@
     "./to-table": {
       "types": "./src/to-table.ts",
       "default": "./src/to-table.ts"
+    },
+    "./collection": {
+      "types": "./src/collection/index.ts",
+      "default": "./src/collection/index.ts"
     }
   },
   "dependencies": {
