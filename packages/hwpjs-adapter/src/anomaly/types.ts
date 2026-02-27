@@ -50,6 +50,16 @@ export interface FieldExtractor {
   strategy: ExtractorStrategy;
   /** 탐색 기준 텍스트 (부분 일치) */
   anchor?: string;
+  /**
+   * 복수 anchor 후보 (rows_after_header 전용).
+   * 앞에서부터 순서대로 시도하며, 매칭 결과가 min_rows 미만이면 다음 anchor로 넘어갑니다.
+   */
+  anchors?: string[];
+  /**
+   * rows_after_header 전용: 헤더 이후 데이터 행이 이 값 미만이면 해당 매칭을 건너뜁니다.
+   * 잘못된 테이블(소형 관리 테이블 등)이 먼저 매칭되는 경우 fallback anchor로 넘어가게 합니다.
+   */
+  min_rows?: number;
   /** 정규식 패턴 (cell_value_match 전용) */
   pattern?: string;
   /** 특정 테이블 인덱스 고정 (생략 시 전체 탐색) */

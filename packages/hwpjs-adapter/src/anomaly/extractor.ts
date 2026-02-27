@@ -137,37 +137,53 @@ function extractRowContainsLabel(field: FieldDef, tables: TableSchema[]): Extrac
 /**
  * rows_after_header:
  * anchor 텍스트가 있는 헤더 행을 찾고, 이후 행들을 table_rows로 반환합니다.
+ *
+ * anchors 배열이 제공된 경우 순서대로 시도합니다.
+ * min_rows가 설정된 경우, 데이터 행 수가 min_rows 미만인 매칭은 건너뛰고
+ * 다음 anchor를 시도합니다. 이를 통해 잘못된 소형 테이블이 먼저 매칭되어도
+ * fallback anchor로 올바른 테이블을 찾을 수 있습니다.
  */
 function extractRowsAfterHeader(field: FieldDef, tables: TableSchema[]): ExtractedField {
-  const anchor = field.extractor.anchor ?? '';
+  const effectiveAnchors = [
+    ...(field.extractor.anchor ? [field.extractor.anchor] : []),
+    ...(field.extractor.anchors ?? []),
+  ];
+  if (effectiveAnchors.length === 0) return { found: false };
 
-  for (let ti = 0; ti < tables.length; ti++) {
-    const tableIdx = field.extractor.table_index;
-    if (tableIdx !== undefined && tableIdx !== ti) continue;
+  const minRows = field.extractor.min_rows ?? 0;
 
-    const table = tables[ti];
-    let headerIdx = -1;
+  for (const anchor of effectiveAnchors) {
+    for (let ti = 0; ti < tables.length; ti++) {
+      const tableIdx = field.extractor.table_index;
+      if (tableIdx !== undefined && tableIdx !== ti) continue;
 
-    for (let ri = 0; ri < table.rows.length; ri++) {
-      const cellVals = table.rows[ri].cells.map(c => String(c.value ?? '').trim());
-      if (cellVals.some(v => v.includes(anchor))) {
-        headerIdx = ri;
-        break;
+      const table = tables[ti];
+      let headerIdx = -1;
+
+      for (let ri = 0; ri < table.rows.length; ri++) {
+        const cellVals = table.rows[ri].cells.map(c => String(c.value ?? '').trim());
+        if (cellVals.some(v => v.includes(anchor))) {
+          headerIdx = ri;
+          break;
+        }
       }
+
+      if (headerIdx < 0) continue;
+
+      const dataRows = table.rows
+        .slice(headerIdx + 1)
+        .map(row => row.cells.map(c => String(c.value ?? '').trim()));
+
+      // min_rows 미만이면 이 매칭을 건너뜁니다 (다음 anchor 또는 다음 테이블로)
+      if (dataRows.length < minRows) continue;
+
+      return {
+        found: true,
+        count: dataRows.length,
+        rows: dataRows,
+        location: { table_index: ti, row_index: headerIdx + 1 },
+      } satisfies ExtractedTableRows;
     }
-
-    if (headerIdx < 0) continue;
-
-    const dataRows = table.rows
-      .slice(headerIdx + 1)
-      .map(row => row.cells.map(c => String(c.value ?? '').trim()));
-
-    return {
-      found: true,
-      count: dataRows.length,
-      rows: dataRows,
-      location: { table_index: ti, row_index: headerIdx + 1 },
-    } satisfies ExtractedTableRows;
   }
 
   return { found: false };
