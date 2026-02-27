@@ -1,7 +1,7 @@
 /**
  * 테이블 수집기
  *
- * TableTypeSchema[]의 collect_pattern을 기준으로 TableSchema[] 전체를 스캔하여
+ * TableTypeDef[]의 collect_pattern을 기준으로 TableSchema[] 전체를 스캔하여
  * 조건에 맞는 테이블을 CollectedTable[]로 반환합니다.
  * 각 결과에는 어떤 패턴으로 매칭됐는지 MatchInfo가 포함됩니다.
  */
@@ -10,7 +10,7 @@ import type { TableSchema } from '../table-schema.js';
 import { tableSchemaToTable } from '../to-table.js';
 import type {
   CollectPattern,
-  TableTypeSchema,
+  TableTypeDef,
   TableTypeSpec,
   CollectedTable,
   MatchInfo,
@@ -154,12 +154,12 @@ export interface CollectOptions {
  * 조건에 맞는 테이블을 수집합니다.
  *
  * @param schemas   - HWP에서 추출된 TableSchema 전체 배열
- * @param types     - 수집 대상 테이블 유형 정의 배열
+ * @param types     - 수집 대상 테이블 유형 정의 배열 (TableTypeDef[])
  * @param options   - 수집 옵션
  */
 export function collectTables(
   schemas: TableSchema[],
-  types: TableTypeSchema[],
+  types: TableTypeDef[],
   options: CollectOptions = {},
 ): CollectedTable[] {
   const { allow_multi_match = false } = options;
@@ -194,10 +194,10 @@ export function collectTables(
 
 /**
  * TableTypeSpec 배열을 기반으로 테이블을 수집합니다.
- * collectTables()와 동일하지만, 각 스펙의 parse_rule이 결과에 함께 포함됩니다.
+ * collectTables()와 동일하지만, 각 스펙의 transform_rule이 결과에 함께 포함됩니다.
  *
  * @param schemas   - HWP에서 추출된 TableSchema 전체 배열
- * @param specs     - 수집 대상 테이블 유형 스펙 배열 (collect_pattern + parse_rule)
+ * @param specs     - 수집 대상 테이블 유형 스펙 배열 (collect_pattern + transform_rule)
  * @param options   - 수집 옵션
  *
  * @example
@@ -206,14 +206,14 @@ export function collectTables(
  *
  * const specs: TableTypeSpec<TransformRule>[] = [
  *   {
- *     type: { name: 'weekly_plan', collect_pattern: { type: 'header_contains', text: '구성내용' } },
- *     parse_rule: { id: 'weekly_plan', type: 'collection', layout: { ... } },
+ *     def: { name: 'weekly_plan', collect_pattern: { type: 'header_contains', text: '구성내용' } },
+ *     transform_rule: { id: 'weekly_plan', type: 'collection', layout: { ... } },
  *   },
  * ];
  *
  * const collected = collectWithSpecs(schemas, specs);
- * // collected[0].parse_rule → TransformRule
- * // collected[0].toTable()  → Table (table-manager)
+ * // collected[0].transform_rule → TransformRule
+ * // collected[0].toTable()      → Table (table-manager)
  * ```
  */
 export function collectWithSpecs<P = unknown>(
@@ -226,7 +226,7 @@ export function collectWithSpecs<P = unknown>(
   const usedIndices = new Set<number>();
 
   for (const spec of specs) {
-    const tableType = spec.type;
+    const tableType = spec.def;
     for (let ti = 0; ti < schemas.length; ti++) {
       if (!allow_multi_match && usedIndices.has(ti)) continue;
 
@@ -244,8 +244,8 @@ export function collectWithSpecs<P = unknown>(
             return tableSchemaToTable(captured);
           },
         };
-        if (spec.parse_rule !== undefined) {
-          entry.parse_rule = spec.parse_rule;
+        if (spec.transform_rule !== undefined) {
+          entry.transform_rule = spec.transform_rule;
         }
         results.push(entry);
         if (!allow_multi_match) usedIndices.add(ti);

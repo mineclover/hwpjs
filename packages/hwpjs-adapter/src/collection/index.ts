@@ -8,7 +8,7 @@ export type {
   SizePattern,
   AndPattern,
   OrPattern,
-  TableTypeSchema,
+  TableTypeDef,
   TableTypeSpec,
   MatchInfo,
   CollectedTable,

@@ -1,10 +1,10 @@
 /**
- * ktech 강의계획서 — 수집 + 파싱 예제
+ * ktech 강의계획서 — 수집 + 콘텐츠 추출 예제
  *
  * 3-레이어 파이프라인:
- *   HWP 파일 → TableSchema[] (hwpjs)
+ *   HWP 파일    → TableSchema[]   (hwpjs)
  *   TableSchema[] → CollectedTable[] (hwpjs-adapter)
- *   CollectedTable → TransformResult (table-manager)
+ *   CollectedTable → TransformResult  (table-manager)
  */
 
 // ── 1. hwpjs로 HWP 파일 파싱 ───────────────────────────────────────────────
@@ -47,27 +47,27 @@ function collectFromSchemas(schemas: any[]) {
   return collected;
 }
 
-// ── 3. 콘텐츠 파싱 (table-manager) ────────────────────────────────────────
+// ── 3. 콘텐츠 추출 (table-manager) ────────────────────────────────────────
 //
 // table-manager가 설치된 환경에서:
 //
 // import { TableManager, TableTransformEngine } from 'table-manager';
 //
-// function parseCollected(collected: ReturnType<typeof collectFromSchemas>) {
+// function extractCollected(collected: ReturnType<typeof collectFromSchemas>) {
 //   const engine = new TableTransformEngine();
 //
 //   for (const c of collected) {
-//     if (!c.parse_rule) continue;
+//     if (!c.transform_rule) continue;
 //
-//     const table = c.toTable();              // TableSchema → Table
-//     const manager = new TableManager(table); // Table → TableManager
-//     const result = engine.execute(manager, { rules: [c.parse_rule] });
+//     const table = c.toTable();               // TableSchema → Table
+//     const manager = new TableManager(table);  // Table → TableManager
+//     const result = engine.execute(manager, { rules: [c.transform_rule] });
 //
 //     if (result.success) {
-//       const data = result.data[c.parse_rule.id];
-//       console.log(`[${c.table_type}] 파싱 완료:`, data);
+//       const data = result.data[c.transform_rule.id];
+//       console.log(`[${c.table_type}] 추출 완료:`, data);
 //     } else {
-//       console.warn(`[${c.table_type}] 파싱 오류:`, result.errors);
+//       console.warn(`[${c.table_type}] 추출 오류:`, result.errors);
 //     }
 //   }
 // }

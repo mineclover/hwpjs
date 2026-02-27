@@ -2,17 +2,17 @@
  * ktech 강의계획서 테이블 유형 스펙 정의
  *
  * 3-레이어 아키텍처:
- *   1. 수집 조건  — collect_pattern (hwpjs-adapter)
- *   2. 전체 수집  — collectWithSpecs() (hwpjs-adapter)
- *   3. 콘텐츠 파싱 — TableManager + TableTransformEngine (table-manager)
+ *   1. 수집 조건 정의  — TableTypeDef.collect_pattern (hwpjs-adapter)
+ *   2. 테이블 수집     — collectWithSpecs() (hwpjs-adapter)
+ *   3. 콘텐츠 추출     — TableManager + TableTransformEngine (table-manager)
  *
- * 이 파일은 수집 조건과 파싱 규칙을 한 곳에 정의한다.
- * table-manager가 설치된 환경에서 parse_rule을 사용한다.
+ * 이 파일은 수집 조건(collect_pattern)과 변환 규칙(transform_rule)을 한 곳에 정의한다.
+ * transform_rule은 table-manager가 설치된 환경에서 사용한다.
  */
 
 import type { TableTypeSpec } from '@ohah/hwpjs-adapter/collection';
 
-// table-manager가 설치된 경우 parse_rule에 타입 안전성 부여
+// table-manager가 설치된 경우 transform_rule에 타입 안전성 부여
 // import type { TransformRule } from 'table-manager';
 // type Spec = TableTypeSpec<TransformRule>;
 type Spec = TableTypeSpec;
@@ -27,12 +27,12 @@ type Spec = TableTypeSpec;
  * 형식: | 주차 | 구성내용 | 시간 | ... |
  */
 const weeklyPlanSpec: Spec = {
-  type: {
+  def: {
     name: 'weekly_plan',
     description: '주차별 수업 구성 계획 (1행/주차)',
     collect_pattern: { type: 'header_contains', text: '구성내용' },
   },
-  parse_rule: {
+  transform_rule: {
     id: 'weekly_plan',
     type: 'collection',
     layout: {
@@ -55,7 +55,7 @@ const weeklyPlanSpec: Spec = {
  * 형식: 회차 | 학습목표 / 학습내용 / 능력단위요소 / 이론·실습·사례 (5행 반복)
  */
 const weeklyPlanKorSpec: Spec = {
-  type: {
+  def: {
     name: 'weekly_plan_kor',
     description: '주차별 수업 구성 계획 (5행/주차, KOR 포맷)',
     collect_pattern: {
@@ -66,7 +66,7 @@ const weeklyPlanKorSpec: Spec = {
       ],
     },
   },
-  parse_rule: {
+  transform_rule: {
     id: 'weekly_plan_kor',
     type: 'collection',
     layout: {
@@ -87,7 +87,7 @@ const weeklyPlanKorSpec: Spec = {
  * 형식: | 성명 | 홍길동 | 소속 | 한국기술교육대학교 | ...
  */
 const instructorInfoSpec: Spec = {
-  type: {
+  def: {
     name: 'instructor_info',
     description: '강사 기본 정보 (이름, 소속, 연락처 등)',
     collect_pattern: {
@@ -98,7 +98,7 @@ const instructorInfoSpec: Spec = {
       ],
     },
   },
-  parse_rule: {
+  transform_rule: {
     id: 'instructor_info',
     type: 'singleton',
     layout: {
