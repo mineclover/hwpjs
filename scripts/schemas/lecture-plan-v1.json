@@ -1,0 +1,139 @@
+{
+  "schema_id": "lecture-plan-v1",
+  "description": "강의계획서",
+  "version": "1.0.0",
+
+  "fields": [
+    {
+      "id": "teaching_method",
+      "label": "이론/실습/사례",
+      "type": "checkbox_cluster",
+      "required": true,
+      "options": ["이론", "실습", "사례"],
+      "extractor": {
+        "strategy": "row_contains_label",
+        "anchor": "이론/실습/사례"
+      }
+    },
+    {
+      "id": "file_provision",
+      "label": "실습/소스파일 제공",
+      "type": "checkbox_cluster",
+      "required": false,
+      "options": ["실습파일", "소스파일", "해당없음", "해당 없음"],
+      "extractor": {
+        "strategy": "row_contains_label",
+        "anchor": "실습파일"
+      }
+    },
+    {
+      "id": "weekly_plan",
+      "label": "주차별 강의계획",
+      "type": "table_rows",
+      "required": true,
+      "min_count": 1,
+      "extractor": {
+        "strategy": "rows_after_header",
+        "anchor": "주차"
+      }
+    }
+  ],
+
+  "anomaly_rules": [
+    {
+      "rule_id": "teaching_method.missing",
+      "severity": "ERROR",
+      "message": "이론/실습/사례 행을 찾을 수 없음",
+      "condition": {
+        "type": "exists",
+        "field": "teaching_method",
+        "expected": true
+      }
+    },
+    {
+      "rule_id": "teaching_method.nothing_checked",
+      "severity": "WARN",
+      "message": "이론/실습/사례 중 체크된 항목 없음",
+      "condition": {
+        "type": "and",
+        "conditions": [
+          {
+            "type": "exists",
+            "field": "teaching_method",
+            "expected": true
+          },
+          {
+            "type": "array_match",
+            "field": "teaching_method.options",
+            "quantifier": "none",
+            "where": { "prop": "checked", "op": "eq", "value": true }
+          }
+        ]
+      }
+    },
+    {
+      "rule_id": "teaching_method.unrecognized_option",
+      "severity": "INFO",
+      "message": "이론/실습/사례 군집에 정의되지 않은 항목(bare-uncheck 등) 발견",
+      "condition": {
+        "type": "array_match",
+        "field": "teaching_method.options",
+        "quantifier": "any",
+        "where": { "prop": "recognized", "op": "eq", "value": false }
+      }
+    },
+    {
+      "rule_id": "weekly_plan.missing",
+      "severity": "ERROR",
+      "message": "주차별 강의계획 테이블을 찾을 수 없음",
+      "condition": {
+        "type": "exists",
+        "field": "weekly_plan",
+        "expected": true
+      }
+    },
+    {
+      "rule_id": "weekly_plan.count_lt_14",
+      "severity": "WARN",
+      "message": "주차별 강의계획 행이 14개 미만",
+      "condition": {
+        "type": "count",
+        "field": "weekly_plan",
+        "op": "lt",
+        "value": 14
+      }
+    },
+    {
+      "rule_id": "weekly_plan.count_gt_16",
+      "severity": "INFO",
+      "message": "주차별 강의계획 행이 16개 초과 (예상 범위 밖)",
+      "condition": {
+        "type": "count",
+        "field": "weekly_plan",
+        "op": "gt",
+        "value": 16
+      }
+    },
+    {
+      "rule_id": "file_provision.exists_but_nothing_checked",
+      "severity": "WARN",
+      "message": "실습/소스파일 군집이 있으나 체크된 항목 없음",
+      "condition": {
+        "type": "and",
+        "conditions": [
+          {
+            "type": "exists",
+            "field": "file_provision",
+            "expected": true
+          },
+          {
+            "type": "array_match",
+            "field": "file_provision.options",
+            "quantifier": "none",
+            "where": { "prop": "checked", "op": "eq", "value": true }
+          }
+        ]
+      }
+    }
+  ]
+}
