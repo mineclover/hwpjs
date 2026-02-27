@@ -11,6 +11,10 @@
     "./anomaly": {
       "types": "./src/anomaly/index.ts",
       "default": "./src/anomaly/index.ts"
+    },
+    "./to-table": {
+      "types": "./src/to-table.ts",
+      "default": "./src/to-table.ts"
     }
   },
   "dependencies": {
