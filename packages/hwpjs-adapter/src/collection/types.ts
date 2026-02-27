@@ -82,6 +82,48 @@ export interface TableTypeSchema {
 }
 
 // ============================================================================
+// 테이블 유형 스펙 (TableTypeSpec) — 수집 + 파싱 규칙 통합 정의
+// ============================================================================
+
+/**
+ * 테이블 유형의 완전한 명세.
+ * 수집(collect_pattern)과 파싱(parse_rule)을 한 곳에 정의한다.
+ *
+ * 제네릭 P는 파싱 규칙 타입이며 기본값은 unknown.
+ * table-manager를 사용하는 경우: TableTypeSpec<TransformRule>
+ *
+ * @example
+ * ```typescript
+ * import type { TransformRule } from 'table-manager';
+ * import { addr } from 'table-manager';
+ *
+ * const weeklyPlanSpec: TableTypeSpec<TransformRule> = {
+ *   type: {
+ *     name: 'weekly_plan',
+ *     collect_pattern: { type: 'header_contains', text: '구성내용' },
+ *   },
+ *   parse_rule: {
+ *     id: 'weekly_plan',
+ *     type: 'collection',
+ *     layout: {
+ *       header: addr.row(0),
+ *       data: addr.range({ row: 1, col: 0 }, { row: -1, col: -1 }),
+ *     },
+ *   },
+ * };
+ * ```
+ */
+export interface TableTypeSpec<P = unknown> {
+  /** 수집 패턴 + 유형 이름 */
+  type: TableTypeSchema;
+  /**
+   * 수집된 테이블에서 콘텐츠를 추출하는 파싱 규칙.
+   * table-manager의 TransformRule을 P로 지정하면 타입 안전성을 얻을 수 있다.
+   */
+  parse_rule?: P;
+}
+
+// ============================================================================
 // 매칭 정보 (어떤 조건으로 수집됐는지)
 // ============================================================================
 
@@ -101,8 +143,11 @@ export interface MatchInfo {
 /**
  * 수집된 테이블 단위.
  * 원본 TableSchema + 매칭 메타데이터 포함.
+ *
+ * 제네릭 P: collectWithSpecs()로 수집된 경우 parse_rule이 P 타입으로 존재함.
+ * collectTables()로 수집된 경우 P = never (parse_rule 없음).
  */
-export interface CollectedTable {
+export interface CollectedTable<P = never> {
   /** 매칭된 유형 이름 */
   table_type: string;
   /** 어떤 조건으로 수집됐는지 */
@@ -111,6 +156,11 @@ export interface CollectedTable {
   table_index: number;
   /** 원본 TableSchema 전체 */
   schema: TableSchema;
+  /**
+   * 파싱 규칙 (collectWithSpecs()로 수집된 경우에만 존재).
+   * table-manager의 TransformRule을 P로 지정하면 타입 안전성을 얻을 수 있다.
+   */
+  parse_rule?: P;
   /** table-manager Table로 변환 (지연 변환) */
   toTable(): Table;
 }

@@ -11,6 +11,7 @@ import { tableSchemaToTable } from '../to-table.js';
 import type {
   CollectPattern,
   TableTypeSchema,
+  TableTypeSpec,
   CollectedTable,
   MatchInfo,
   HeaderContainsPattern,
@@ -183,6 +184,70 @@ export function collectTables(
             return tableSchemaToTable(captured);
           },
         });
+        if (!allow_multi_match) usedIndices.add(ti);
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * TableTypeSpec 배열을 기반으로 테이블을 수집합니다.
+ * collectTables()와 동일하지만, 각 스펙의 parse_rule이 결과에 함께 포함됩니다.
+ *
+ * @param schemas   - HWP에서 추출된 TableSchema 전체 배열
+ * @param specs     - 수집 대상 테이블 유형 스펙 배열 (collect_pattern + parse_rule)
+ * @param options   - 수집 옵션
+ *
+ * @example
+ * ```typescript
+ * import type { TransformRule } from 'table-manager';
+ *
+ * const specs: TableTypeSpec<TransformRule>[] = [
+ *   {
+ *     type: { name: 'weekly_plan', collect_pattern: { type: 'header_contains', text: '구성내용' } },
+ *     parse_rule: { id: 'weekly_plan', type: 'collection', layout: { ... } },
+ *   },
+ * ];
+ *
+ * const collected = collectWithSpecs(schemas, specs);
+ * // collected[0].parse_rule → TransformRule
+ * // collected[0].toTable()  → Table (table-manager)
+ * ```
+ */
+export function collectWithSpecs<P = unknown>(
+  schemas: TableSchema[],
+  specs: TableTypeSpec<P>[],
+  options: CollectOptions = {},
+): CollectedTable<P>[] {
+  const { allow_multi_match = false } = options;
+  const results: CollectedTable<P>[] = [];
+  const usedIndices = new Set<number>();
+
+  for (const spec of specs) {
+    const tableType = spec.type;
+    for (let ti = 0; ti < schemas.length; ti++) {
+      if (!allow_multi_match && usedIndices.has(ti)) continue;
+
+      const schema = schemas[ti];
+      const { matched, info } = matchPattern(schema, tableType.collect_pattern);
+
+      if (matched && info) {
+        const captured = schema;
+        const entry: CollectedTable<P> = {
+          table_type: tableType.name,
+          match_info: info,
+          table_index: ti,
+          schema: captured,
+          toTable() {
+            return tableSchemaToTable(captured);
+          },
+        };
+        if (spec.parse_rule !== undefined) {
+          entry.parse_rule = spec.parse_rule;
+        }
+        results.push(entry);
         if (!allow_multi_match) usedIndices.add(ti);
       }
     }

@@ -1,4 +1,5 @@
-export { collectTables } from './collector.js';
+export { collectTables, collectWithSpecs } from './collector.js';
+export type { CollectOptions } from './collector.js';
 export type {
   CollectPattern,
   HeaderContainsPattern,
@@ -8,6 +9,7 @@ export type {
   AndPattern,
   OrPattern,
   TableTypeSchema,
+  TableTypeSpec,
   MatchInfo,
   CollectedTable,
 } from './types.js';
