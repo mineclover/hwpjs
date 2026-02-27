@@ -46,6 +46,13 @@ export type ExtractorStrategy =
   | 'cell_value_match'    // 특정 셀 값 정규식 매칭
   | 'table_caption';      // 테이블 캡션 텍스트
 
+/** rows_after_header anchor별 세부 설정 */
+export interface AnchorConfig {
+  anchor: string;
+  /** 이 anchor로 매칭된 경우에만 적용되는 item_header_pattern */
+  item_header_pattern?: string;
+}
+
 export interface FieldExtractor {
   strategy: ExtractorStrategy;
   /** 탐색 기준 텍스트 (부분 일치) */
@@ -60,6 +67,18 @@ export interface FieldExtractor {
    * 잘못된 테이블(소형 관리 테이블 등)이 먼저 매칭되는 경우 fallback anchor로 넘어가게 합니다.
    */
   min_rows?: number;
+  /**
+   * rows_after_header 전용: 설정 시 이 정규식과 첫 번째 셀이 일치하는 행만 항목으로 간주하여
+   * count를 산출합니다. 복수 행이 하나의 회차를 이루는 포맷(예: 5행/회차)에 사용합니다.
+   * anchors_config 내 anchor별 설정이 있으면 이 전역 설정보다 우선합니다.
+   */
+  item_header_pattern?: string;
+  /**
+   * rows_after_header 전용: anchor별 세부 설정.
+   * 순서대로 시도하며, 각 anchor에 item_header_pattern을 개별 지정할 수 있습니다.
+   * anchor/anchors와 병용 불가 — anchors_config가 있으면 anchor/anchors를 무시합니다.
+   */
+  anchors_config?: AnchorConfig[];
   /** 정규식 패턴 (cell_value_match 전용) */
   pattern?: string;
   /** 특정 테이블 인덱스 고정 (생략 시 전체 탐색) */

@@ -34,7 +34,10 @@
       "min_count": 1,
       "extractor": {
         "strategy": "rows_after_header",
-        "anchors": ["구성내용", "주요내용"],
+        "anchors_config": [
+          { "anchor": "구성내용" },
+          { "anchor": "주요내용", "item_header_pattern": "^\\d+$" }
+        ],
         "min_rows": 3
       }
     }
