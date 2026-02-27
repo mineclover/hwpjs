@@ -97,28 +97,6 @@
       }
     },
     {
-      "rule_id": "weekly_plan.count_lt_11",
-      "severity": "WARN",
-      "message": "회차별 강의계획 행이 11개 미만 (정상 범위: 11~16)",
-      "condition": {
-        "type": "count",
-        "field": "weekly_plan",
-        "op": "lt",
-        "value": 11
-      }
-    },
-    {
-      "rule_id": "weekly_plan.count_gt_16",
-      "severity": "INFO",
-      "message": "회차별 강의계획 행이 16개 초과 (정상 범위: 11~16)",
-      "condition": {
-        "type": "count",
-        "field": "weekly_plan",
-        "op": "gt",
-        "value": 16
-      }
-    },
-    {
       "rule_id": "file_provision.exists_but_nothing_checked",
       "severity": "WARN",
       "message": "실습/소스파일 군집이 있으나 체크된 항목 없음",
