@@ -28,13 +28,14 @@
     },
     {
       "id": "weekly_plan",
-      "label": "주차별 강의계획",
+      "label": "회차별 강의계획",
       "type": "table_rows",
       "required": true,
       "min_count": 1,
       "extractor": {
         "strategy": "rows_after_header",
-        "anchor": "주차"
+        "anchors": ["구성내용", "주요내용"],
+        "min_rows": 3
       }
     }
   ],
@@ -93,20 +94,20 @@
       }
     },
     {
-      "rule_id": "weekly_plan.count_lt_14",
+      "rule_id": "weekly_plan.count_lt_11",
       "severity": "WARN",
-      "message": "주차별 강의계획 행이 14개 미만",
+      "message": "회차별 강의계획 행이 11개 미만 (정상 범위: 11~16)",
       "condition": {
         "type": "count",
         "field": "weekly_plan",
         "op": "lt",
-        "value": 14
+        "value": 11
       }
     },
     {
       "rule_id": "weekly_plan.count_gt_16",
       "severity": "INFO",
-      "message": "주차별 강의계획 행이 16개 초과 (예상 범위 밖)",
+      "message": "회차별 강의계획 행이 16개 초과 (정상 범위: 11~16)",
       "condition": {
         "type": "count",
         "field": "weekly_plan",
