@@ -118,8 +118,8 @@ function evalCount(c: CountCondition, fields: Record<string, ExtractedField>): E
     return { triggered: true, detail: 'field not found' };
   }
   const actual = (field as ExtractedTableRows).count ?? 0;
-  const ok = compareNum(actual, c.op, c.value);
-  return { triggered: !ok, detail: `count=${actual}` };
+  const triggered = compareNum(actual, c.op, c.value);
+  return { triggered, detail: `count=${actual}` };
 }
 
 function evalArrayMatch(
@@ -167,7 +167,7 @@ function evalValueMatch(
     return { triggered: true, detail: 'field not found' };
   }
   const actual = (field as ExtractedText).value ?? '';
-  const triggered = !compareAny(actual, c.op, c.value, c.pattern);
+  const triggered = compareAny(actual, c.op, c.value, c.pattern);
   return { triggered, detail: `value=${JSON.stringify(actual)}` };
 }
 
@@ -192,7 +192,7 @@ function evalAggregate(
     default:      agg = 0;
   }
 
-  const triggered = !compareNum(agg, c.op, c.value);
+  const triggered = compareNum(agg, c.op, c.value);
   return { triggered, detail: `${c.fn}=${agg}` };
 }
 
