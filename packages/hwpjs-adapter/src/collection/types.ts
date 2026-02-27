@@ -3,7 +3,7 @@
  *
  * 역할 분리:
  *   어댑터(hwpjs-adapter) — HWP → TableSchema 변환 + 수집 조건 매칭
- *   table-manager         — 수집된 Table에서 패턴 기반 콘텐츠 파싱
+ *   table-manager         — 수집된 Table에서 TransformRule 기반 콘텐츠 추출
  */
 
 import type { TableSchema } from '../table-schema.js';
@@ -66,14 +66,18 @@ export type CollectPattern =
   | OrPattern;
 
 // ============================================================================
-// 테이블 유형 정의 (TableTypeSchema)
+// 테이블 유형 정의 (TableTypeDef)
 // ============================================================================
 
 /**
  * 수집 대상 테이블 유형 정의.
  * 유형마다 수집 패턴이 완전히 분리됨.
+ *
+ * 명칭: TableTypeDef
+ *   - `TableSchema`(hwpjs HWP 데이터 구조), `TableSchema`(table-manager Zod 검증자)와
+ *     구분하기 위해 "Schema" 대신 "Def"(Definition) 사용
  */
-export interface TableTypeSchema {
+export interface TableTypeDef {
   /** 유형 이름 (e.g. "weekly_plan", "instructor_info") */
   name: string;
   description?: string;
@@ -82,45 +86,44 @@ export interface TableTypeSchema {
 }
 
 // ============================================================================
-// 테이블 유형 스펙 (TableTypeSpec) — 수집 + 파싱 규칙 통합 정의
+// 테이블 유형 스펙 (TableTypeSpec) — 수집 조건 + 변환 규칙 통합 정의
 // ============================================================================
 
 /**
  * 테이블 유형의 완전한 명세.
- * 수집(collect_pattern)과 파싱(parse_rule)을 한 곳에 정의한다.
+ * 수집(collect_pattern)과 변환(transform_rule)을 한 곳에 정의한다.
  *
- * 제네릭 P는 파싱 규칙 타입이며 기본값은 unknown.
+ * 제네릭 P는 변환 규칙 타입이며 기본값은 unknown.
  * table-manager를 사용하는 경우: TableTypeSpec<TransformRule>
  *
  * @example
  * ```typescript
  * import type { TransformRule } from 'table-manager';
- * import { addr } from 'table-manager';
  *
  * const weeklyPlanSpec: TableTypeSpec<TransformRule> = {
- *   type: {
+ *   def: {
  *     name: 'weekly_plan',
  *     collect_pattern: { type: 'header_contains', text: '구성내용' },
  *   },
- *   parse_rule: {
+ *   transform_rule: {
  *     id: 'weekly_plan',
  *     type: 'collection',
  *     layout: {
- *       header: addr.row(0),
- *       data: addr.range({ row: 1, col: 0 }, { row: -1, col: -1 }),
+ *       header: { type: 'row', row: 0 },
+ *       data: { type: 'range', start: { row: 1, col: 0 }, end: { row: -1, col: -1 } },
  *     },
  *   },
  * };
  * ```
  */
 export interface TableTypeSpec<P = unknown> {
-  /** 수집 패턴 + 유형 이름 */
-  type: TableTypeSchema;
+  /** 유형 정의 (이름 + 수집 조건) */
+  def: TableTypeDef;
   /**
-   * 수집된 테이블에서 콘텐츠를 추출하는 파싱 규칙.
+   * 수집된 테이블에서 콘텐츠를 추출하는 변환 규칙 (table-manager TransformRule).
    * table-manager의 TransformRule을 P로 지정하면 타입 안전성을 얻을 수 있다.
    */
-  parse_rule?: P;
+  transform_rule?: P;
 }
 
 // ============================================================================
@@ -144,8 +147,8 @@ export interface MatchInfo {
  * 수집된 테이블 단위.
  * 원본 TableSchema + 매칭 메타데이터 포함.
  *
- * 제네릭 P: collectWithSpecs()로 수집된 경우 parse_rule이 P 타입으로 존재함.
- * collectTables()로 수집된 경우 P = never (parse_rule 없음).
+ * 제네릭 P: collectWithSpecs()로 수집된 경우 transform_rule이 P 타입으로 존재함.
+ * collectTables()로 수집된 경우 P = never (transform_rule 없음).
  */
 export interface CollectedTable<P = never> {
   /** 매칭된 유형 이름 */
@@ -157,10 +160,10 @@ export interface CollectedTable<P = never> {
   /** 원본 TableSchema 전체 */
   schema: TableSchema;
   /**
-   * 파싱 규칙 (collectWithSpecs()로 수집된 경우에만 존재).
+   * 변환 규칙 (collectWithSpecs()로 수집된 경우에만 존재).
    * table-manager의 TransformRule을 P로 지정하면 타입 안전성을 얻을 수 있다.
    */
-  parse_rule?: P;
+  transform_rule?: P;
   /** table-manager Table로 변환 (지연 변환) */
   toTable(): Table;
 }
