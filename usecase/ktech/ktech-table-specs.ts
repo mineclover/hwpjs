@@ -118,13 +118,44 @@ const instructorInfoSpec: Spec = {
 };
 
 // ============================================================================
+// 과정 정보 테이블 (NCS 수행정보 + 능력단위 포함)
+// ============================================================================
+
+/**
+ * 과정 정보 테이블 — NCS 수행정보, 분류체계, 능력단위 포함
+ *
+ * 형식 (table[2] 패턴):
+ *   row 0: 과정명(국문) | ...
+ *   row 1: 과정명(영문) | ...
+ *   row 2: NCS 수행정보 | 적용 여부 | ...
+ *   row 3~7: 분류 코드 (대/중/소/세분류)
+ *   row 8~: 능력단위 헤더 + 데이터 (분류번호 | 능력단위명 | NCS 수준)
+ *
+ * 능력단위 행 추출: extractNcsUnits() (usecase/ktech/ncs-units.ts)
+ */
+const courseInfoSpec: Spec = {
+  def: {
+    name: 'course_info',
+    description: '과정 정보 (NCS 수행정보, 능력단위 포함)',
+    collect_pattern: {
+      type: 'and',
+      patterns: [
+        { type: 'header_contains', text: '분류번호' },
+        { type: 'header_contains', text: '능력단위명' },
+      ],
+    },
+  },
+};
+
+// ============================================================================
 // 공개 스펙 배열
 // ============================================================================
 
 export const ktechTableSpecs: Spec[] = [
+  courseInfoSpec,
   weeklyPlanSpec,
   weeklyPlanKorSpec,
   instructorInfoSpec,
 ];
 
-export { weeklyPlanSpec, weeklyPlanKorSpec, instructorInfoSpec };
+export { courseInfoSpec, weeklyPlanSpec, weeklyPlanKorSpec, instructorInfoSpec };

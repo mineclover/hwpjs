@@ -28,10 +28,9 @@
 // ── 2. 테이블 수집 (hwpjs-adapter) ────────────────────────────────────────
 import { collectWithSpecs } from '@ohah/hwpjs-adapter/collection';
 import { ktechTableSpecs } from './ktech-table-specs.js';
+import { extractNcsUnits, type NcsUnit } from './ncs-units.js';
 
 // schemas는 위 1단계에서 추출한 TableSchema[]
-// 예시: 파이프라인에서 이미 만들어진 JSON을 로드하는 경우
-// import schemas from '../../pipeline/stage1/schemas/001...json';
 
 function collectFromSchemas(schemas: any[]) {
   const collected = collectWithSpecs(schemas, ktechTableSpecs);
@@ -45,6 +44,23 @@ function collectFromSchemas(schemas: any[]) {
   }
 
   return collected;
+}
+
+// ── 2b. 능력단위 추출 ────────────────────────────────────────────────────────
+//
+// course_info 테이블(table[2])에서 능력단위 행을 파싱한다.
+// 결과: [{ code: '1903050304_14v1', name: '전자부품하드웨어 사양서 분석', level: '4수준' }]
+//
+// 향후: weekly_plan 테이블의 능력단위요소 행과 조합하여
+//       "1903050304_14v1.1 부품 기능 분석하기" 형태로 표현 예정.
+
+function extractUnitsFromSchemas(schemas: any[]): NcsUnit[] {
+  const collected = collectWithSpecs(schemas, ktechTableSpecs);
+
+  const courseInfo = collected.find(c => c.table_type === 'course_info');
+  if (!courseInfo) return [];
+
+  return extractNcsUnits(courseInfo.schema);
 }
 
 // ── 3. 콘텐츠 추출 (table-manager) ────────────────────────────────────────
@@ -72,4 +88,4 @@ function collectFromSchemas(schemas: any[]) {
 //   }
 // }
 
-export { collectFromSchemas };
+export { collectFromSchemas, extractUnitsFromSchemas };
