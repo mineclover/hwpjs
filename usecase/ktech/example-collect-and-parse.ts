@@ -1,91 +1,67 @@
 /**
  * ktech 강의계획서 — 수집 + 콘텐츠 추출 예제
  *
+ * 타겟 파일: 036 (외국인노동자 노동법), 074 (기초전자회로)
+ *
  * 3-레이어 파이프라인:
  *   HWP 파일    → TableSchema[]   (hwpjs)
  *   TableSchema[] → CollectedTable[] (hwpjs-adapter)
- *   CollectedTable → TransformResult  (table-manager)
+ *   CollectedTable → CourseInfo      (ncs-units.ts)
  */
 
-// ── 1. hwpjs로 HWP 파일 파싱 ───────────────────────────────────────────────
-// import { readFileSync } from 'fs';
-// import { toJson, toHtml } from '@ohah/hwpjs';
-// import { extractAllTableSchemas, transformHwpTablesWithSchema } from '@ohah/hwpjs/table-schema';
-// import type { ImageMap } from '@ohah/hwpjs/table-schema';
-//
-// const buffer = readFileSync('path/to/file.hwp');
-// const html = toHtml(buffer, { includeVersion: false, includePageInfo: false });
-// const imageMap: ImageMap = new Map();
-// html.match(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g)?.forEach((url, i) => {
-//   const format = url.match(/data:image\/([^;]+)/)?.[1] ?? 'unknown';
-//   imageMap.set(i + 1, { dataUrl: url, format });
-// });
-// const json = JSON.parse(toJson(buffer));
-// const schemas = extractAllTableSchemas(
-//   transformHwpTablesWithSchema(json.body_text, { imageMap }),
-// );
-
-// ── 2. 테이블 수집 (hwpjs-adapter) ────────────────────────────────────────
+import * as path from 'path';
 import { collectWithSpecs } from '@ohah/hwpjs-adapter/collection';
 import { ktechTableSpecs } from './ktech-table-specs.js';
-import { extractNcsUnits, type NcsUnit } from './ncs-units.js';
+import {
+  loadCourseInfoJson,
+  extractCourseInfo,
+  type CourseInfo,
+} from './ncs-units.js';
 
-// schemas는 위 1단계에서 추출한 TableSchema[]
+// ── A. JSON 직접 로드 (CSV 필드 포함, 권장) ───────────────────────────────
+//
+// 기존 파이프라인 결과(competency-units.json)에 이미 CSV 필드가 포함되어 있으므로
+// 타겟 파일 수가 적을 때는 이 방법이 가장 빠르다.
 
-function collectFromSchemas(schemas: any[]) {
-  const collected = collectWithSpecs(schemas, ktechTableSpecs);
-
-  console.log(`수집된 테이블: ${collected.length}개`);
-  for (const c of collected) {
-    console.log(`  [${c.table_index}] ${c.table_type} — 매칭: ${c.match_info.pattern_type}`);
-    if (c.match_info.matched_text) {
-      console.log(`        텍스트: "${c.match_info.matched_text}"`);
-    }
-  }
-
-  return collected;
+export function loadTargetCourses(jsonPath: string): CourseInfo[] {
+  // 현재 타겟: 036, 074
+  return loadCourseInfoJson(jsonPath, [36, 74]);
 }
 
-// ── 2b. 능력단위 추출 ────────────────────────────────────────────────────────
+// ── B. HWP 실시간 추출 (CSV 필드 없음) ────────────────────────────────────
 //
-// course_info 테이블(table[2])에서 능력단위 행을 파싱한다.
-// 결과: [{ code: '1903050304_14v1', name: '전자부품하드웨어 사양서 분석', level: '4수준' }]
-//
-// 향후: weekly_plan 테이블의 능력단위요소 행과 조합하여
-//       "1903050304_14v1.1 부품 기능 분석하기" 형태로 표현 예정.
+// stage1 schemas JSON에서 로드하는 경우.
+// publicContentEval / category / cdmsCode는 별도로 병합 필요.
 
-function extractUnitsFromSchemas(schemas: any[]): NcsUnit[] {
+export function extractFromSchemas(schemas: any[], fileName: string): CourseInfo {
   const collected = collectWithSpecs(schemas, ktechTableSpecs);
-
-  const courseInfo = collected.find(c => c.table_type === 'course_info');
-  if (!courseInfo) return [];
-
-  return extractNcsUnits(courseInfo.schema);
+  const courseInfoTable = collected.find(c => c.table_type === 'course_info');
+  if (!courseInfoTable) throw new Error(`course_info 테이블 없음: ${fileName}`);
+  return extractCourseInfo(courseInfoTable.schema, fileName);
 }
+
+// ── 사용 예 ───────────────────────────────────────────────────────────────
+//
+// import { loadTargetCourses } from './example-collect-and-parse.js';
+//
+// const courses = loadTargetCourses('pipeline/html/competency-units.json');
+// for (const c of courses) {
+//   console.log(c.fileNumber, c.courseName);
+//   console.log('  능력단위:', c.competencyUnits.map(u => `${u.code} ${u.name}`));
+//   console.log('  분류:', c.classification.major.name, '>', c.classification.detail.name);
+//   console.log('  CDMS:', c.cdmsCode, '/ 공공평가:', c.publicContentEval);
+// }
 
 // ── 3. 콘텐츠 추출 (table-manager) ────────────────────────────────────────
 //
-// table-manager가 설치된 환경에서:
-//
 // import { TableManager, TableTransformEngine } from 'table-manager';
 //
-// function extractCollected(collected: ReturnType<typeof collectFromSchemas>) {
+// function extractCollected(schemas: any[]) {
+//   const collected = collectWithSpecs(schemas, ktechTableSpecs);
 //   const engine = new TableTransformEngine();
-//
 //   for (const c of collected) {
 //     if (!c.transform_rule) continue;
-//
-//     const table = c.toTable();               // TableSchema → Table
-//     const manager = new TableManager(table);  // Table → TableManager
-//     const result = engine.execute(manager, { rules: [c.transform_rule] });
-//
-//     if (result.success) {
-//       const data = result.data[c.transform_rule.id];
-//       console.log(`[${c.table_type}] 추출 완료:`, data);
-//     } else {
-//       console.warn(`[${c.table_type}] 추출 오류:`, result.errors);
-//     }
+//     const result = engine.execute(new TableManager(c.toTable()), { rules: [c.transform_rule] });
+//     if (result.success) console.log(`[${c.table_type}]`, result.data[c.transform_rule.id]);
 //   }
 // }
-
-export { collectFromSchemas, extractUnitsFromSchemas };
