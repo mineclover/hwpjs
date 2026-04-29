@@ -1,7 +1,6 @@
 import { toJson, toHtml } from '../packages/hwpjs/dist/index.js';
 import {
   transformHwpTablesWithSchema,
-  extractAllTableSchemas,
   type TableSchema,
   type ImageMap,
 } from '../packages/hwpjs-adapter/src/table-schema';
@@ -14,8 +13,14 @@ const fixturesDir = path.join(import.meta.dir, '../crates/hwp-core/tests/fixture
 const outDir = path.join(import.meta.dir, '../output');
 fs.mkdirSync(outDir, { recursive: true });
 
-// hwpjs toHtml 출력에서 base64 이미지 목록 추출 → imageMap
-// imageMap 빌드는 hwpjs의 안정적인 toHtml 결과를 그대로 활용
+// ─── 타입 ────────────────────────────────────────────────────────────────────
+
+type TextBlock  = { type: 'text';  lines: string[] };
+type TableBlock = { type: 'table'; schema: TableSchema };
+type DocBlock   = TextBlock | TableBlock;
+
+// ─── imageMap ────────────────────────────────────────────────────────────────
+
 function buildImageMap(html: string): ImageMap {
   const map: ImageMap = new Map();
   const matches = html.match(/data:image\/([^;]+);base64,[A-Za-z0-9+/=]+/g) ?? [];
@@ -26,27 +31,79 @@ function buildImageMap(html: string): ImageMap {
   return map;
 }
 
-// JSON에서 테이블 셀 내 bindata_id 위치를 찾아 imageMap으로 schemas에 이미지 주입
-// — 어댑터 코드를 수정하지 않고 generate 스크립트에서만 처리
-function injectImagesIntoSchemas(
-  bodyText: unknown,
-  schemas: TableSchema[],
-  imageMap: ImageMap,
-): void {
+// ─── 문서 블록 추출 (단락 순서 유지) ─────────────────────────────────────────
+
+function findAllTableSchemas(obj: unknown, results: TableSchema[] = []): TableSchema[] {
+  if (!obj || typeof obj !== 'object') return results;
+  if (Array.isArray(obj)) { obj.forEach(v => findAllTableSchemas(v, results)); return results; }
+  const rec = obj as Record<string, unknown>;
+  if ('tableSchema' in rec) {
+    results.push(rec['tableSchema'] as TableSchema);
+    return results; // tableSchema 아래에 중첩 테이블은 없으므로 중단
+  }
+  Object.values(rec).forEach(v => findAllTableSchemas(v, results));
+  return results;
+}
+
+function extractParaText(para: Record<string, unknown>): string {
+  const records = (para['records'] as any[]) ?? [];
+  const lines: string[] = [];
+  for (const rec of records) {
+    if (rec.type === 'para_text' && rec.text) {
+      const clean = String(rec.text).replace(/[\x00-\x1F]/g, '').trim();
+      if (clean) lines.push(clean);
+    }
+  }
+  return lines.join(' ');
+}
+
+function buildDocumentBlocks(transformed: unknown): DocBlock[] {
+  const blocks: DocBlock[] = [];
+
+  const body = (transformed as any)?.body_text;
+  if (!body) return blocks;
+
+  for (const section of body.sections ?? []) {
+    for (const para of section.paragraphs ?? []) {
+      const schemas = findAllTableSchemas(para);
+      if (schemas.length > 0) {
+        for (const schema of schemas) blocks.push({ type: 'table', schema });
+        continue;
+      }
+
+      // 일반 텍스트 단락
+      const text = extractParaText(para);
+      if (!text) continue;
+
+      // 직전 블록이 text면 합치기
+      const last = blocks[blocks.length - 1];
+      if (last?.type === 'text') {
+        last.lines.push(text);
+      } else {
+        blocks.push({ type: 'text', lines: [text] });
+      }
+    }
+  }
+
+  return blocks;
+}
+
+// ─── 이미지 주입 (어댑터 코드 불변, 스크립트에서만 처리) ──────────────────────
+
+function injectImages(rawBodyText: unknown, blocks: DocBlock[], imageMap: ImageMap): void {
   if (imageMap.size === 0) return;
 
-  // JSON에서 table 객체를 순서대로 수집
+  // 원본 JSON에서 table 객체 순서대로 수집
   const rawTables: unknown[] = [];
   function collectTables(obj: unknown): void {
     if (!obj || typeof obj !== 'object') return;
     if (Array.isArray(obj)) { obj.forEach(collectTables); return; }
-    const rec = obj as Record<string, unknown>;
-    if ('table' in rec) { rawTables.push(rec['table']); return; }
-    Object.values(rec).forEach(collectTables);
+    const r = obj as Record<string, unknown>;
+    if ('table' in r) { rawTables.push(r['table']); return; }
+    Object.values(r).forEach(collectTables);
   }
-  collectTables(bodyText);
+  collectTables(rawBodyText);
 
-  // 각 table의 cells → paragraphs → records를 재귀 탐색해 bindata_id 수집
   function findBinIds(obj: unknown): number[] {
     const ids: number[] = [];
     function walk(o: unknown): void {
@@ -63,17 +120,15 @@ function injectImagesIntoSchemas(
     return ids;
   }
 
-  // rawTables[i] ↔ schemas[i] 1:1 대응
-  for (let ti = 0; ti < Math.min(rawTables.length, schemas.length); ti++) {
+  const tableBlocks = blocks.filter((b): b is TableBlock => b.type === 'table');
+  for (let ti = 0; ti < Math.min(rawTables.length, tableBlocks.length); ti++) {
     const rawTable = rawTables[ti] as { cells?: unknown[] };
-    const schema = schemas[ti];
+    const schema = tableBlocks[ti].schema;
     const cells = rawTable.cells ?? [];
-
     let cellIdx = 0;
     for (const row of schema.rows) {
       for (const cell of row.cells) {
-        const rawCell = cells[cellIdx++];
-        const binIds = findBinIds(rawCell);
+        const binIds = findBinIds(cells[cellIdx++]);
         if (binIds.length > 0) {
           cell.images = binIds
             .filter(id => imageMap.has(id))
@@ -87,6 +142,8 @@ function injectImagesIntoSchemas(
   }
 }
 
+// ─── 렌더러 ──────────────────────────────────────────────────────────────────
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -95,58 +152,62 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-// TableSchema → HTML (이미지 포함)
-// 이미지 없는 경우 table-manager tableToHtml 사용
-// 이미지 있는 경우 TableSchema 직접 렌더링 (tableToHtml은 CellImage 미지원)
-function renderSchemaToHtml(schema: TableSchema): string {
+function renderTableSchema(schema: TableSchema): string {
   const hasImages = schema.rows.some(r => r.cells.some(c => c.images && c.images.length > 0));
   if (!hasImages) {
     return tableToHtml(tableSchemaToTable(schema), { pretty: true, autoGenerateId: true });
   }
-  return renderSchemaDirectly(schema);
-}
 
-function renderSchemaDirectly(schema: TableSchema): string {
+  // 이미지 있는 경우 TableSchema 직접 렌더링 (tableToHtml은 CellImage 미지원)
   const merges = schema.merges ?? [];
-
-  function isMergedAway(row: number, col: number): boolean {
+  function isMergedAway(row: number, col: number) {
     return merges.some(m =>
       (row > m.start.row || (row === m.start.row && col > m.start.col)) &&
       row <= m.end.row && col <= m.end.col
     );
   }
-
-  function getMergeSpan(row: number, col: number) {
+  function getSpan(row: number, col: number) {
     const m = merges.find(m => m.start.row === row && m.start.col === col);
-    if (!m) return { colspan: 1, rowspan: 1 };
-    return { colspan: m.end.col - m.start.col + 1, rowspan: m.end.row - m.start.row + 1 };
+    return m
+      ? { colspan: m.end.col - m.start.col + 1, rowspan: m.end.row - m.start.row + 1 }
+      : { colspan: 1, rowspan: 1 };
   }
 
-  const rows = schema.rows.map((row, rowIdx) => {
-    let colIndex = 0;
-    const cells = row.cells.map(cell => {
-      while (isMergedAway(rowIdx, colIndex)) colIndex++;
-      const { colspan, rowspan } = getMergeSpan(rowIdx, colIndex);
-      const spanAttrs = [
-        colspan > 1 ? `colspan="${colspan}"` : '',
-        rowspan > 1 ? `rowspan="${rowspan}"` : '',
-      ].filter(Boolean).join(' ');
-
+  const rows = schema.rows.map((row, ri) => {
+    let ci = 0;
+    const tds = row.cells.map(cell => {
+      while (isMergedAway(ri, ci)) ci++;
+      const { colspan, rowspan } = getSpan(ri, ci);
+      const span = [colspan > 1 ? `colspan="${colspan}"` : '', rowspan > 1 ? `rowspan="${rowspan}"` : ''].filter(Boolean).join(' ');
       const text = cell.value != null && String(cell.value).trim()
-        ? `<span>${escapeHtml(String(cell.value)).replace(/\n/g, '<br>')}</span>`
-        : '';
+        ? `<span>${escapeHtml(String(cell.value)).replace(/\n/g, '<br>')}</span>` : '';
       const imgs = (cell.images ?? []).map(img =>
         `<img src="${img.src}" alt="" style="max-width:100%;display:block;margin-top:4px">`
       ).join('');
-
-      colIndex++;
-      return `    <td${spanAttrs ? ' ' + spanAttrs : ''} style="border:1px solid #ccc;padding:6px 10px;vertical-align:top">${text}${imgs}</td>`;
+      ci++;
+      return `      <td${span ? ' ' + span : ''}>${text}${imgs}</td>`;
     }).join('\n');
-    return `  <tr>\n${cells}\n  </tr>`;
+    return `    <tr>\n${tds}\n    </tr>`;
   }).join('\n');
 
-  return `<table style="border-collapse:collapse;width:100%;font-size:13px">\n${rows}\n</table>`;
+  return `  <table>\n${rows}\n  </table>`;
 }
+
+function renderBlocks(blocks: DocBlock[]): string {
+  let tableIdx = 0;
+  return blocks.map(block => {
+    if (block.type === 'text') {
+      const html = block.lines.map(l => `<p>${escapeHtml(l)}</p>`).join('\n');
+      return `<div class="text-block">${html}</div>`;
+    }
+    tableIdx++;
+    const imgCount = block.schema.rows.flatMap(r => r.cells).reduce((n, c) => n + (c.images?.length ?? 0), 0);
+    const badge = imgCount > 0 ? `<span class="img-badge">이미지 ${imgCount}개</span>` : '';
+    return `<div class="table-block"><div class="table-label">Table ${tableIdx}${badge}</div>${renderTableSchema(block.schema)}</div>`;
+  }).join('\n');
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 const targets = ['table.hwp', 'table2.hwp', 'noori.hwp'];
 
@@ -157,55 +218,54 @@ for (const name of targets) {
   const buf = fs.readFileSync(hwpPath);
   const baseName = path.basename(name, '.hwp');
 
-  // hwpjs toHtml — 이미지 추출의 신뢰 소스
   const hwpHtml = toHtml(buf, { includeVersion: true });
   fs.writeFileSync(path.join(outDir, `${baseName}-hwpjs.html`), hwpHtml);
   const imageMap = buildImageMap(hwpHtml);
 
-  // pipeline: 어댑터는 구조 변환만 담당, 이미지는 generate 스크립트에서 주입
   const json = JSON.parse(toJson(buf));
   const transformed = transformHwpTablesWithSchema(json);
-  const schemas = extractAllTableSchemas(transformed);
-  injectImagesIntoSchemas(json.body_text, schemas, imageMap);
+  const blocks = buildDocumentBlocks(transformed);
+  injectImages(json.body_text, blocks, imageMap);
 
-  const totalImages = schemas.reduce((n, s) =>
-    n + s.rows.flatMap(r => r.cells).reduce((m, c) => m + (c.images?.length ?? 0), 0), 0);
-
-  const tablesHtml = schemas.map((schema, i) => {
-    const imgCount = schema.rows.flatMap(r => r.cells).reduce((n, c) => n + (c.images?.length ?? 0), 0);
-    const html = renderSchemaToHtml(schema);
-    return `<section><h3>Table ${i + 1}${imgCount > 0 ? ` (이미지 ${imgCount}개)` : ''}</h3>${html}</section>`;
-  }).join('\n');
+  const tableCount = blocks.filter(b => b.type === 'table').length;
+  const textCount  = blocks.filter(b => b.type === 'text').length;
+  const imageTotal = blocks
+    .filter((b): b is TableBlock => b.type === 'table')
+    .reduce((n, b) => n + b.schema.rows.flatMap(r => r.cells).reduce((m, c) => m + (c.images?.length ?? 0), 0), 0);
 
   const pipelineHtml = `<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>${baseName} — HWP Table Pipeline</title>
+<title>${baseName} — HWP Pipeline</title>
 <style>
-  body { font-family: 'Malgun Gothic', sans-serif; padding: 24px; background: #f5f5f5; }
+  body { font-family: 'Malgun Gothic', sans-serif; padding: 24px; max-width: 960px; margin: 0 auto; background: #f5f5f5; }
   h1 { color: #1a1a2e; margin-bottom: 4px; }
   .meta { color: #666; font-size: 13px; margin-bottom: 32px; }
-  section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 24px;
-            box-shadow: 0 1px 4px rgba(0,0,0,.1); }
-  h3 { margin: 0 0 12px; color: #444; font-size: 14px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  .text-block { background: white; border-radius: 8px; padding: 16px 20px; margin-bottom: 12px;
+                box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .text-block p { margin: 4px 0; font-size: 14px; line-height: 1.7; color: #333; }
+  .table-block { background: white; border-radius: 8px; padding: 16px 20px; margin-bottom: 12px;
+                 box-shadow: 0 1px 3px rgba(0,0,0,.08); position: relative; }
+  .table-label { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 8px;
+                 display: flex; align-items: center; gap: 8px; }
+  .img-badge { background: #4f46e5; color: white; font-size: 11px;
+               padding: 2px 8px; border-radius: 10px; }
   table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  td { vertical-align: top; }
+  td, th { border: 1px solid #ccc; padding: 6px 10px; vertical-align: top; }
   tr:nth-child(even) td { background: #fafafa; }
   img { max-width: 100%; }
 </style>
 </head>
 <body>
-<h1>${baseName}.hwp — 테이블 파이프라인 출력</h1>
+<h1>${baseName}.hwp</h1>
 <p class="meta">
-  테이블: <strong>${schemas.length}개</strong> &nbsp;|&nbsp;
-  이미지: <strong>${totalImages}개</strong> &nbsp;|&nbsp;
-  imageMap(from toHtml): <strong>${imageMap.size}개</strong>
+  블록: 텍스트 <strong>${textCount}개</strong> / 테이블 <strong>${tableCount}개</strong> / 이미지 <strong>${imageTotal}개</strong>
 </p>
-${schemas.length === 0 ? '<p>테이블 없음</p>' : tablesHtml}
+${renderBlocks(blocks)}
 </body>
 </html>`;
 
   fs.writeFileSync(path.join(outDir, `${baseName}-pipeline.html`), pipelineHtml);
-  console.log(`✓ ${name}: 테이블 ${schemas.length}개, 이미지 ${totalImages}개 (imageMap: ${imageMap.size}개)`);
+  console.log(`✓ ${name}: 텍스트 ${textCount}블록, 테이블 ${tableCount}개, 이미지 ${imageTotal}개`);
 }
