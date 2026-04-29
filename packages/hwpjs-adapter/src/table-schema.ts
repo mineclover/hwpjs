@@ -185,20 +185,11 @@ function extractCellContent(cell: HwpCell, imageMap: ImageMap): { text: string; 
         const cleanText = record.text.replace(/[\x00-\x1F]/g, '');
         if (cleanText) texts.push(cleanText);
       }
-      // 실제 구조: ctrl_header → shape_component → shape_component_picture
-      if (record.type === 'ctrl_header' && Array.isArray((record as any).children)) {
-        for (const shapeComp of (record as any).children) {
-          if (shapeComp.type === 'shape_component' && Array.isArray(shapeComp.children)) {
-            for (const shapePic of shapeComp.children) {
-              if (shapePic.type === 'shape_component_picture') {
-                const binId = shapePic.shape_component_picture?.picture_info?.bindata_id;
-                if (binId !== undefined && imageMap.has(binId)) {
-                  const img = imageMap.get(binId)!;
-                  images.push({ id: `img-${binId}`, src: img.dataUrl, format: img.format });
-                }
-              }
-            }
-          }
+      if (record.type === 'shape_component_picture' && record.shape_component_picture) {
+        const binId = record.shape_component_picture.picture_info?.bindata_id;
+        if (binId !== undefined && imageMap.has(binId)) {
+          const img = imageMap.get(binId)!;
+          images.push({ id: `img-${binId}`, src: img.dataUrl, format: img.format });
         }
       }
     }
