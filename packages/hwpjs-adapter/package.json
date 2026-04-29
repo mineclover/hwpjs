@@ -19,6 +19,10 @@
     "./collection": {
       "types": "./src/collection/index.ts",
       "default": "./src/collection/index.ts"
+    },
+    "./extract": {
+      "types": "./src/extract/index.ts",
+      "default": "./src/extract/index.ts"
     }
   },
   "dependencies": {
