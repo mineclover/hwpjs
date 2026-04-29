@@ -1,14 +1,14 @@
 import { test, expect } from 'bun:test';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { parseHwpToMarkdown } from '../index';
+import { toMarkdown } from '@ohah/hwpjs';
 
-const fixturesPath = join(__dirname, '../../crates/hwp-core/tests/fixtures');
+const fixturesPath = join(__dirname, '../../../crates/hwp-core/tests/fixtures');
 const nooriHwpPath = join(fixturesPath, 'noori.hwp');
 
-test('parseHwpToMarkdown with base64 option should include base64 data URI in markdown', () => {
+test('toMarkdown with base64 option should include base64 data URI in markdown', () => {
   const hwpData = readFileSync(nooriHwpPath);
-  const result = parseHwpToMarkdown(hwpData, { image: 'base64' });
+  const result = toMarkdown(hwpData, { image: 'base64' });
 
   // Check that markdown contains base64 data URI
   expect(result.markdown).toContain('data:image/');
@@ -24,9 +24,9 @@ test('parseHwpToMarkdown with base64 option should include base64 data URI in ma
   console.log(result.markdown.substring(0, 500));
 });
 
-test('parseHwpToMarkdown with blob option should return images array', () => {
+test('toMarkdown with blob option should return images array', () => {
   const hwpData = readFileSync(nooriHwpPath);
-  const result = parseHwpToMarkdown(hwpData, { image: 'blob' });
+  const result = toMarkdown(hwpData, { image: 'blob' });
 
   // Check that markdown contains placeholder
   expect(result.markdown).toContain('image-0');
@@ -42,9 +42,9 @@ test('parseHwpToMarkdown with blob option should return images array', () => {
   console.log('Blob test - First image ID:', result.images[0]?.id);
 });
 
-test('parseHwpToMarkdown without image option should default to blob', () => {
+test('toMarkdown without image option should default to blob', () => {
   const hwpData = readFileSync(nooriHwpPath);
-  const result = parseHwpToMarkdown(hwpData);
+  const result = toMarkdown(hwpData);
 
   // Should default to blob behavior
   expect(result.markdown).toContain('image-0');
