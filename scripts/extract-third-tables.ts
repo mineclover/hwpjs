@@ -13,6 +13,7 @@ import {
   saveImagesToFiles,
   type TableSchema,
   type TableSchemaRow,
+  type MergeRange,
   type ImageMap,
 } from '../packages/hwpjs-adapter/src/table-schema';
 

@@ -9,7 +9,7 @@
  */
 
 import * as fs from 'fs';
-import type { TableSchema } from '@ohah/hwpjs/table-schema';
+import type { TableSchema } from '@ohah/hwpjs-adapter/table-schema';
 
 // ============================================================================
 // 타입 정의 (competency-units.json 구조와 동일)
