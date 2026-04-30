@@ -24,24 +24,34 @@ function extractParaText(para: any): string {
     .join(' ');
 }
 
-// ─── ctrl_header(tbl).paragraphs → 셀 텍스트 매핑 ────────────────────────────
-// ktech 강의계획서 HWP는 셀 paragraphs가 비어있고
-// ctrl_header(tbl).paragraphs[]에 전체 텍스트가 플랫하게 저장됨
+// ─── ctrl_header(tbl) 파싱 ───────────────────────────────────────────────────
 
-function getFlatTextsFromTblCtrl(rawPara: any): string[] {
-  const texts: string[] = [];
+interface TblCtrlData {
+  flatTexts: string[];    // ctrl_header.paragraphs[] 전체 텍스트 (순서 보존)
+  rawCells: any[];        // children[0].table.cells[] (단락 수 참조용)
+}
+
+function parseTblCtrl(rawPara: any): TblCtrlData {
+  const flatTexts: string[] = [];
+  let rawCells: any[] = [];
+
   for (const rec of rawPara?.records ?? []) {
-    if (rec.type === 'ctrl_header' && rec.ctrl_id?.trim() === 'tbl') {
-      for (const p of rec.paragraphs ?? []) {
-        const t = runsToText(p) ||
-          ((p.records ?? []).filter((r: any) => r.type === 'para_text' && r.text)
-            .map((r: any) => String(r.text).replace(/[\x00-\x1F]/g, '').trim())
-            .filter(Boolean).join(' '));
-        texts.push(t); // 빈 것도 포함 (위치 보존)
-      }
+    if (rec.type !== 'ctrl_header' || rec.ctrl_id?.trim() !== 'tbl') continue;
+
+    // 플랫 텍스트: ctrl_header.paragraphs[]
+    for (const p of rec.paragraphs ?? []) {
+      const t = runsToText(p) ||
+        ((p.records ?? []).filter((r: any) => r.type === 'para_text' && r.text)
+          .map((r: any) => String(r.text).replace(/[\x00-\x1F]/g, '').trim())
+          .filter(Boolean).join(' '));
+      flatTexts.push(t);
     }
+
+    // 원본 셀 배열 (단락 수 확인용)
+    rawCells = rec.children?.[0]?.table?.cells ?? [];
   }
-  return texts;
+
+  return { flatTexts, rawCells };
 }
 
 // 모든 셀이 비어있는지 확인
@@ -51,37 +61,28 @@ function allCellsEmpty(schema: TableSchema): boolean {
   );
 }
 
-// 플랫 텍스트를 셀에 순서대로 채우기
-// 셀 순서: 병합 제외하고 실제로 존재하는 셀 (row-major)
-function fillCellsFromFlat(schema: TableSchema, flatTexts: string[]): void {
-  const merges = schema.merges ?? [];
+// 셀별 단락 수만큼 flat 텍스트를 묶어서 매핑
+// rawCells[i].paragraphs.length → 해당 셀에 소비할 flat 텍스트 수
+function fillCellsFromFlat(schema: TableSchema, flatTexts: string[], rawCells: any[]): void {
+  if (flatTexts.length === 0) return;
 
-  function isMergedAway(row: number, col: number): boolean {
-    return merges.some(m =>
-      (row > m.start.row || (row === m.start.row && col > m.start.col)) &&
-      row <= m.end.row && col <= m.end.col
-    );
-  }
+  // schema 셀을 row-major 순서로 수집
+  const schemaCells: Array<typeof schema.rows[0]['cells'][0]> = [];
+  for (const row of schema.rows) schemaCells.push(...row.cells);
 
-  // 실제 셀 목록 (merged-away 제외, 행/열 위치 포함)
-  const realCells: Array<{ cell: (typeof schema.rows)[0]['cells'][0]; ri: number; ci: number }> = [];
-  for (let ri = 0; ri < schema.rows.length; ri++) {
-    let ci = 0;
-    for (const cell of schema.rows[ri].cells) {
-      while (isMergedAway(ri, ci)) ci++;
-      realCells.push({ cell, ri, ci });
-      ci++;
-    }
-  }
+  // rawCells도 (row_address, col_address) 기준 row-major 정렬
+  const sortedRaw = [...rawCells].sort((a, b) =>
+    a.cell_attributes.row_address !== b.cell_attributes.row_address
+      ? a.cell_attributes.row_address - b.cell_attributes.row_address
+      : a.cell_attributes.col_address - b.cell_attributes.col_address
+  );
 
-  // 비어있지 않은 플랫 텍스트만 사용
-  const nonEmpty = flatTexts.filter(t => t.trim());
-
-  if (nonEmpty.length === 0) return;
-
-  // 1:1 매핑 (셀 수 ≥ 텍스트 수인 경우)
-  for (let i = 0; i < Math.min(realCells.length, nonEmpty.length); i++) {
-    realCells[i].cell.value = nonEmpty[i];
+  let flatIdx = 0;
+  for (let i = 0; i < Math.min(schemaCells.length, sortedRaw.length); i++) {
+    const paraCount = sortedRaw[i]?.paragraphs?.length ?? 1;
+    const chunk = flatTexts.slice(flatIdx, flatIdx + paraCount).filter(t => t.trim());
+    if (chunk.length > 0) schemaCells[i].value = chunk.join('\n');
+    flatIdx += paraCount;
   }
 }
 
@@ -93,7 +94,7 @@ function schemaToTableRecord(schema: TableSchema, schemaPath: string): TableReco
   const rows: TableRowRecord[] = schema.rows.map((row, ri) => {
     const cells: TableCellRecord[] = row.cells.map((cell, ci) => ({
       path: `${schemaPath}.rows[${ri}].cells[${ci}]`,
-      content: cell.value != null ? String(cell.value).replace(/[\x00-\x1F]/g, '').trim() : '',
+      content: cell.value != null ? String(cell.value).replace(/[\x00-\x09\x0B-\x1F]/g, '').trim() : '',
       ...(cell.images && cell.images.length > 0
         ? { images: cell.images.map(img => ({ id: img.id, src: img.src, format: img.format })) }
         : {}),
@@ -200,14 +201,12 @@ export function extractContent(
       const found = findAllTableSchemas(para, paraPath);
 
       if (found.length > 0) {
-        // 원본 단락에서 플랫 텍스트 추출 (ktech 스타일 대응)
         const rawPara = rawParas[pi];
-        const flatTexts = getFlatTextsFromTblCtrl(rawPara);
+        const { flatTexts, rawCells } = parseTblCtrl(rawPara);
 
         for (const { schema, path: tablePath } of found) {
-          // 셀이 비어있으면 플랫 텍스트로 채움
           if (allCellsEmpty(schema) && flatTexts.length > 0) {
-            fillCellsFromFlat(schema, flatTexts);
+            fillCellsFromFlat(schema, flatTexts, rawCells);
           }
           const table = schemaToTableRecord(schema, tablePath);
           allTableRecords.push(table);
