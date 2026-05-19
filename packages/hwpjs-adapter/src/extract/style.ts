@@ -1,3 +1,5 @@
+import { normalizeText } from '../utils/normalize.js';
+import { collectRawTables } from '../utils/traverse.js';
 import type { DocRecord, StyleRun, CharStyle, ParagraphStyle } from './types.js';
 
 // ─── 색상 변환 ────────────────────────────────────────────────────────────────
@@ -18,7 +20,7 @@ function resolveCharStyle(shapeId: number, charShapes: any[], faceNames: any[]):
 
   const fontId = cs.font_ids?.korean ?? 0;
   const font = faceNames[fontId]?.name ?? '';
-  const size = Math.round((cs.base_size ?? 1000) / 100 * 10) / 10;  // HWP 1/100pt → pt
+  const size = Math.round((cs.base_size ?? 1000) / 100 * 10) / 10;
 
   const attr = cs.attributes ?? {};
   const tc = cs.text_color ?? { r: 0, g: 0, b: 0 };
@@ -65,16 +67,12 @@ function buildStyleRuns(
 
 // ─── Paragraph Style 빌드 ────────────────────────────────────────────────────
 
-function buildParaStyle(
-  paraShapeId: number,
-  paraShapes: any[],
-): ParagraphStyle {
+function buildParaStyle(paraShapeId: number, paraShapes: any[]): ParagraphStyle {
   const ps = paraShapes[paraShapeId];
   if (!ps) return { align: 'left', line_spacing: 160, indent_left: 0, indent_right: 0, indent_first: 0, space_before: 0, space_after: 0 };
 
-  const align = ps.attributes1?.align ?? 'left';
   return {
-    align,
+    align: ps.attributes1?.align ?? 'left',
     line_spacing: ps.line_spacing ?? ps.line_spacing_old ?? 160,
     indent_left: ps.left_margin ?? 0,
     indent_right: ps.right_margin ?? 0,
@@ -88,25 +86,13 @@ function buildParaStyle(
 
 function extractCellTextAndShapes(cell: any): { text: string; shapes: any[] } | null {
   for (const para of cell.paragraphs ?? []) {
-    const textRec = (para.records ?? []).find((r: any) => r.type === 'para_text' && r.text);
+    const textRec  = (para.records ?? []).find((r: any) => r.type === 'para_text' && r.text);
     const shapeRec = (para.records ?? []).find((r: any) => r.type === 'para_char_shape');
     if (textRec) {
-      const text = String(textRec.text).replace(/[\x00-\x1F]/g, '');
-      return { text, shapes: shapeRec?.shapes ?? [] };
+      return { text: normalizeText(textRec.text, false), shapes: shapeRec?.shapes ?? [] };
     }
   }
   return null;
-}
-
-// ─── 단락에서 table 직접 탐색 (변환 전 raw JSON 사용) ──────────────────────────
-
-function findRawTables(obj: unknown, out: any[] = []): any[] {
-  if (!obj || typeof obj !== 'object') return out;
-  if (Array.isArray(obj)) { obj.forEach(v => findRawTables(v, out)); return out; }
-  const r = obj as Record<string, unknown>;
-  if ('table' in r) { out.push(r['table']); return out; }
-  Object.values(r).forEach(v => findRawTables(v, out));
-  return out;
 }
 
 // ─── 공개 API ─────────────────────────────────────────────────────────────────
@@ -122,16 +108,14 @@ export function extractStyle(hwpJson: unknown, contentRecords: DocRecord[]): Doc
   const body = (hwpJson as any)?.body_text;
   if (!body) return contentRecords;
 
-  // path → paragraph 빠른 탐색용 맵 구성
-  const paraMap = new Map<string, { para: any; si: number; pi: number }>();
+  const paraMap = new Map<string, { para: any }>();
   for (const [si, section] of (body.sections ?? []).entries()) {
     for (const [pi, para] of (section.paragraphs ?? []).entries()) {
-      paraMap.set(`body_text.sections[${si}].paragraphs[${pi}]`, { para, si, pi });
+      paraMap.set(`body_text.sections[${si}].paragraphs[${pi}]`, { para });
     }
   }
 
-  // raw table 순서대로 수집 (셀 스타일용)
-  const rawTables = findRawTables(body);
+  const rawTables = collectRawTables(body);
   let tableIdx = 0;
 
   for (const record of contentRecords) {
@@ -140,18 +124,18 @@ export function extractStyle(hwpJson: unknown, contentRecords: DocRecord[]): Doc
       if (!entry) continue;
       const { para } = entry;
 
-      const textRec = (para.records ?? []).find((r: any) => r.type === 'para_text' && r.text);
+      const textRec  = (para.records ?? []).find((r: any) => r.type === 'para_text' && r.text);
       const shapeRec = (para.records ?? []).find((r: any) => r.type === 'para_char_shape');
       const paraShapeId = para.para_header?.para_shape_id ?? 0;
 
       if (textRec) {
-        const text = String(textRec.text).replace(/[\x00-\x1F]/g, '');
+        const text = normalizeText(textRec.text, false);
         record.runs = buildStyleRuns(text, shapeRec?.shapes ?? [], charShapes, faceNames);
       }
       record.para_style = buildParaStyle(paraShapeId, paraShapes);
 
     } else if (record.kind === 'table' && record.table) {
-      const rawTable = rawTables[tableIdx++];
+      const rawTable = rawTables[tableIdx++] as any;
       if (!rawTable) continue;
 
       const rawCells: any[] = rawTable.cells ?? [];
@@ -160,11 +144,9 @@ export function extractStyle(hwpJson: unknown, contentRecords: DocRecord[]): Doc
         for (const cell of row.cells) {
           const rawCell = rawCells[ci++];
           if (!rawCell) continue;
-
           const extracted = extractCellTextAndShapes(rawCell);
           if (extracted) {
-            const { text, shapes } = extracted;
-            cell.runs = buildStyleRuns(text, shapes, charShapes, faceNames);
+            cell.runs = buildStyleRuns(extracted.text, extracted.shapes, charShapes, faceNames);
           }
         }
       }
