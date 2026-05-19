@@ -61,22 +61,16 @@ pub fn parse_opf<R: Read + Seek>(archive: &mut zip::ZipArchive<R>) -> Result<Opf
                 if !text.is_empty() {
                     match current_meta_name.as_str() {
                         "creator" => info.metadata.creator = Some(text),
-                        "subject" => {
-                            if !text.is_empty() {
-                                info.metadata.subject = Some(text);
-                            }
+                        "subject" if !text.is_empty() => {
+                            info.metadata.subject = Some(text);
                         }
-                        "description" => {
-                            if !text.is_empty() {
-                                info.metadata.description = Some(text);
-                            }
+                        "description" if !text.is_empty() => {
+                            info.metadata.description = Some(text);
                         }
                         "CreatedDate" => info.metadata.created_date = Some(text),
                         "ModifiedDate" => info.metadata.modified_date = Some(text),
-                        "keyword" => {
-                            if !text.is_empty() {
-                                info.metadata.keywords = Some(text);
-                            }
+                        "keyword" if !text.is_empty() => {
+                            info.metadata.keywords = Some(text);
                         }
                         _ => {}
                     }
@@ -175,12 +169,12 @@ fn find_opf_path<R: Read + Seek>(archive: &mut zip::ZipArchive<R>) -> Option<Str
 
     loop {
         match reader.read_event_into(&mut buf).ok()? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"rootfile" {
-                    if let Some(mt) = attr_str(e, b"media-type") {
-                        if mt.contains("hwpml-package") {
-                            return attr_str(e, b"full-path");
-                        }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"rootfile" =>
+            {
+                if let Some(mt) = attr_str(e, b"media-type") {
+                    if mt.contains("hwpml-package") {
+                        return attr_str(e, b"full-path");
                     }
                 }
             }

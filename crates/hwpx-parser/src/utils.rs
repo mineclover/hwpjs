@@ -123,17 +123,17 @@ pub fn skip_element(reader: &mut Reader<&[u8]>, tag_name: &[u8]) -> Result<(), H
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            quick_xml::events::Event::Start(e) => {
-                if local_name(e.name().as_ref()) == local_name(tag_name) {
-                    depth += 1;
-                }
+            quick_xml::events::Event::Start(e)
+                if local_name(e.name().as_ref()) == local_name(tag_name) =>
+            {
+                depth += 1;
             }
-            quick_xml::events::Event::End(e) => {
-                if local_name(e.name().as_ref()) == local_name(tag_name) {
-                    depth -= 1;
-                    if depth == 0 {
-                        break;
-                    }
+            quick_xml::events::Event::End(e)
+                if local_name(e.name().as_ref()) == local_name(tag_name) =>
+            {
+                depth -= 1;
+                if depth == 0 {
+                    break;
                 }
             }
             quick_xml::events::Event::Eof => break,

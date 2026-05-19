@@ -128,12 +128,12 @@ pub fn extract_flat_text(para: &Paragraph) -> FlatTextResult {
                     // 매핑 기록 (원본 위치 → 추출 위치)
                     result.wchar_map.push((original_wchar_pos, wchar_pos));
                     match ctrl {
-                        Control::FieldBegin(field) => {
-                            if field.field_type == hwp_model::types::FieldType::Hyperlink {
-                                let url = crate::viewer::doc_utils::extract_hyperlink_url(field);
-                                let onclick = crate::viewer::doc_utils::url_to_onclick(&url);
-                                hyperlink_start = Some((wchar_pos, onclick, None));
-                            }
+                        Control::FieldBegin(field)
+                            if field.field_type == hwp_model::types::FieldType::Hyperlink =>
+                        {
+                            let url = crate::viewer::doc_utils::extract_hyperlink_url(field);
+                            let onclick = crate::viewer::doc_utils::url_to_onclick(&url);
+                            hyperlink_start = Some((wchar_pos, onclick, None));
                         }
                         Control::FieldEnd => {
                             if let Some((start, onclick, cs_id)) = hyperlink_start.take() {

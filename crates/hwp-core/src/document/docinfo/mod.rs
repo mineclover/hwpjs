@@ -140,144 +140,104 @@ impl DocInfo {
 
             // 태그별로 분류하여 저장 / Classify and store by tag
             match header.tag_id {
-                HwpTag::DOCUMENT_PROPERTIES => {
-                    if header.level == 0 {
-                        // DocumentProperties는 완전히 파싱 / Fully parse DocumentProperties
-                        let props = DocumentProperties::parse(record_data)?;
-                        doc_info.document_properties = Some(props);
-                    }
+                HwpTag::DOCUMENT_PROPERTIES if header.level == 0 => {
+                    // DocumentProperties는 완전히 파싱 / Fully parse DocumentProperties
+                    let props = DocumentProperties::parse(record_data)?;
+                    doc_info.document_properties = Some(props);
                 }
-                HwpTag::ID_MAPPINGS => {
-                    if header.level == 0 {
-                        // IdMappings는 완전히 파싱 / Fully parse IdMappings
-                        let id_mappings = IdMappings::parse(record_data, file_header.version)?;
-                        doc_info.id_mappings = Some(id_mappings);
-                    }
+                HwpTag::ID_MAPPINGS if header.level == 0 => {
+                    // IdMappings는 완전히 파싱 / Fully parse IdMappings
+                    let id_mappings = IdMappings::parse(record_data, file_header.version)?;
+                    doc_info.id_mappings = Some(id_mappings);
                 }
-                HwpTag::BIN_DATA => {
-                    if header.level == 1 {
-                        // BinDataRecord는 완전히 파싱 / Fully parse BinDataRecord
-                        let bin_data_record = BinDataRecord::parse(record_data)?;
-                        doc_info.bin_data.push(bin_data_record);
-                    }
+                HwpTag::BIN_DATA if header.level == 1 => {
+                    // BinDataRecord는 완전히 파싱 / Fully parse BinDataRecord
+                    let bin_data_record = BinDataRecord::parse(record_data)?;
+                    doc_info.bin_data.push(bin_data_record);
                 }
-                HwpTag::FACE_NAME => {
-                    if header.level == 1 {
-                        // FaceName은 완전히 파싱 / Fully parse FaceName
-                        let face_name = FaceName::parse(record_data)?;
-                        doc_info.face_names.push(face_name);
-                    }
+                HwpTag::FACE_NAME if header.level == 1 => {
+                    // FaceName은 완전히 파싱 / Fully parse FaceName
+                    let face_name = FaceName::parse(record_data)?;
+                    doc_info.face_names.push(face_name);
                 }
-                HwpTag::BORDER_FILL => {
-                    if header.level == 1 {
-                        // BorderFill은 완전히 파싱 / Fully parse BorderFill
-                        let border_fill = BorderFill::parse(record_data)?;
-                        doc_info.border_fill.push(border_fill);
-                    }
+                HwpTag::BORDER_FILL if header.level == 1 => {
+                    // BorderFill은 완전히 파싱 / Fully parse BorderFill
+                    let border_fill = BorderFill::parse(record_data)?;
+                    doc_info.border_fill.push(border_fill);
                 }
-                HwpTag::CHAR_SHAPE => {
-                    if header.level == 1 {
-                        // CharShape는 완전히 파싱 / Fully parse CharShape
-                        let char_shape = CharShape::parse(record_data, file_header.version)?;
-                        doc_info.char_shapes.push(char_shape);
-                    }
+                HwpTag::CHAR_SHAPE if header.level == 1 => {
+                    // CharShape는 완전히 파싱 / Fully parse CharShape
+                    let char_shape = CharShape::parse(record_data, file_header.version)?;
+                    doc_info.char_shapes.push(char_shape);
                 }
-                HwpTag::TAB_DEF => {
-                    if header.level == 1 {
-                        // TabDef는 완전히 파싱 / Fully parse TabDef
-                        let tab_def = TabDef::parse(record_data)?;
-                        doc_info.tab_defs.push(tab_def);
-                    }
+                HwpTag::TAB_DEF if header.level == 1 => {
+                    // TabDef는 완전히 파싱 / Fully parse TabDef
+                    let tab_def = TabDef::parse(record_data)?;
+                    doc_info.tab_defs.push(tab_def);
                 }
-                HwpTag::NUMBERING => {
-                    if header.level == 1 {
-                        // Numbering은 완전히 파싱 / Fully parse Numbering
-                        let numbering = Numbering::parse(record_data, file_header.version)?;
-                        doc_info.numbering.push(numbering);
-                    }
+                HwpTag::NUMBERING if header.level == 1 => {
+                    // Numbering은 완전히 파싱 / Fully parse Numbering
+                    let numbering = Numbering::parse(record_data, file_header.version)?;
+                    doc_info.numbering.push(numbering);
                 }
-                HwpTag::BULLET => {
-                    if header.level == 1 {
-                        // Bullet은 완전히 파싱 / Fully parse Bullet
-                        let bullet = Bullet::parse(record_data)?;
-                        doc_info.bullets.push(bullet);
-                    }
+                HwpTag::BULLET if header.level == 1 => {
+                    // Bullet은 완전히 파싱 / Fully parse Bullet
+                    let bullet = Bullet::parse(record_data)?;
+                    doc_info.bullets.push(bullet);
                 }
-                HwpTag::PARA_SHAPE => {
-                    if header.level == 1 {
-                        // ParaShape은 완전히 파싱 / Fully parse ParaShape
-                        let para_shape = ParaShape::parse(record_data, file_header.version)?;
-                        doc_info.para_shapes.push(para_shape);
-                    }
+                HwpTag::PARA_SHAPE if header.level == 1 => {
+                    // ParaShape은 완전히 파싱 / Fully parse ParaShape
+                    let para_shape = ParaShape::parse(record_data, file_header.version)?;
+                    doc_info.para_shapes.push(para_shape);
                 }
-                HwpTag::STYLE => {
-                    if header.level == 1 {
-                        let style = Style::parse(record_data)?;
-                        doc_info.styles.push(style);
-                    }
+                HwpTag::STYLE if header.level == 1 => {
+                    let style = Style::parse(record_data)?;
+                    doc_info.styles.push(style);
                 }
-                HwpTag::DOC_DATA => {
-                    if header.level == 0 {
-                        // 문서 임의의 데이터 파싱 / Parse document arbitrary data
-                        let doc_data = DocData::parse(record_data)?;
-                        doc_info.doc_data.push(doc_data);
-                    }
+                HwpTag::DOC_DATA if header.level == 0 => {
+                    // 문서 임의의 데이터 파싱 / Parse document arbitrary data
+                    let doc_data = DocData::parse(record_data)?;
+                    doc_info.doc_data.push(doc_data);
                 }
-                HwpTag::DISTRIBUTE_DOC_DATA => {
-                    if header.level == 0 {
-                        // 배포용 문서 데이터 파싱 / Parse distribution document data
-                        let distribute_doc_data = DistributeDocData::parse(record_data)?;
-                        doc_info.distribute_doc_data = Some(distribute_doc_data);
-                    }
+                HwpTag::DISTRIBUTE_DOC_DATA if header.level == 0 => {
+                    // 배포용 문서 데이터 파싱 / Parse distribution document data
+                    let distribute_doc_data = DistributeDocData::parse(record_data)?;
+                    doc_info.distribute_doc_data = Some(distribute_doc_data);
                 }
-                HwpTag::COMPATIBLE_DOCUMENT => {
-                    if header.level == 0 {
-                        // 호환 문서 파싱 / Parse compatible document
-                        let compatible_document = CompatibleDocument::parse(record_data)?;
-                        doc_info.compatible_document = Some(compatible_document);
-                    }
+                HwpTag::COMPATIBLE_DOCUMENT if header.level == 0 => {
+                    // 호환 문서 파싱 / Parse compatible document
+                    let compatible_document = CompatibleDocument::parse(record_data)?;
+                    doc_info.compatible_document = Some(compatible_document);
                 }
-                HwpTag::LAYOUT_COMPATIBILITY => {
-                    if header.level == 1 {
-                        // 레이아웃 호환성 파싱 / Parse layout compatibility
-                        let layout_compatibility = LayoutCompatibility::parse(record_data)?;
-                        doc_info.layout_compatibility = Some(layout_compatibility);
-                    }
+                HwpTag::LAYOUT_COMPATIBILITY if header.level == 1 => {
+                    // 레이아웃 호환성 파싱 / Parse layout compatibility
+                    let layout_compatibility = LayoutCompatibility::parse(record_data)?;
+                    doc_info.layout_compatibility = Some(layout_compatibility);
                 }
-                HwpTag::TRACKCHANGE => {
-                    if header.level == 1 {
-                        // 변경 추적 정보 파싱 / Parse track change information
-                        let track_change = TrackChange::parse(record_data)?;
-                        doc_info.track_change = Some(track_change);
-                    }
+                HwpTag::TRACKCHANGE if header.level == 1 => {
+                    // 변경 추적 정보 파싱 / Parse track change information
+                    let track_change = TrackChange::parse(record_data)?;
+                    doc_info.track_change = Some(track_change);
                 }
-                HwpTag::MEMO_SHAPE => {
-                    if header.level == 1 {
-                        // 메모 모양 파싱 / Parse memo shape
-                        let memo_shape = MemoShape::parse(record_data)?;
-                        doc_info.memo_shapes.push(memo_shape);
-                    }
+                HwpTag::MEMO_SHAPE if header.level == 1 => {
+                    // 메모 모양 파싱 / Parse memo shape
+                    let memo_shape = MemoShape::parse(record_data)?;
+                    doc_info.memo_shapes.push(memo_shape);
                 }
-                HwpTag::FORBIDDEN_CHAR => {
-                    if header.level == 0 {
-                        // 금칙처리 문자 파싱 / Parse forbidden character
-                        let forbidden_char = ForbiddenChar::parse(record_data)?;
-                        doc_info.forbidden_chars.push(forbidden_char);
-                    }
+                HwpTag::FORBIDDEN_CHAR if header.level == 0 => {
+                    // 금칙처리 문자 파싱 / Parse forbidden character
+                    let forbidden_char = ForbiddenChar::parse(record_data)?;
+                    doc_info.forbidden_chars.push(forbidden_char);
                 }
-                HwpTag::TRACK_CHANGE => {
-                    if header.level == 1 {
-                        // 변경 추적 내용 및 모양 파싱 / Parse track change content and shape
-                        let track_change_content = TrackChangeContent::parse(record_data)?;
-                        doc_info.track_change_contents.push(track_change_content);
-                    }
+                HwpTag::TRACK_CHANGE if header.level == 1 => {
+                    // 변경 추적 내용 및 모양 파싱 / Parse track change content and shape
+                    let track_change_content = TrackChangeContent::parse(record_data)?;
+                    doc_info.track_change_contents.push(track_change_content);
                 }
-                HwpTag::TRACK_CHANGE_AUTHOR => {
-                    if header.level == 1 {
-                        // 변경 추적 작성자 파싱 / Parse track change author
-                        let track_change_author = TrackChangeAuthor::parse(record_data)?;
-                        doc_info.track_change_authors.push(track_change_author);
-                    }
+                HwpTag::TRACK_CHANGE_AUTHOR if header.level == 1 => {
+                    // 변경 추적 작성자 파싱 / Parse track change author
+                    let track_change_author = TrackChangeAuthor::parse(record_data)?;
+                    doc_info.track_change_authors.push(track_change_author);
                 }
                 // 기타 태그는 무시 (나중에 구현 가능) / Other tags are ignored (can be implemented later)
                 _ => {

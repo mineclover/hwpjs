@@ -71,16 +71,16 @@ pub fn parse_settings<R: Read + Seek>(
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"beginNum" {
-                    settings.page_start = attr_u16(e, b"page").unwrap_or(1);
-                    settings.footnote_start = attr_u16(e, b"footnote").unwrap_or(1);
-                    settings.endnote_start = attr_u16(e, b"endnote").unwrap_or(1);
-                    settings.picture_start = attr_u16(e, b"pic").unwrap_or(1);
-                    settings.table_start = attr_u16(e, b"tbl").unwrap_or(1);
-                    settings.equation_start = attr_u16(e, b"equation").unwrap_or(1);
-                    break;
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"beginNum" =>
+            {
+                settings.page_start = attr_u16(e, b"page").unwrap_or(1);
+                settings.footnote_start = attr_u16(e, b"footnote").unwrap_or(1);
+                settings.endnote_start = attr_u16(e, b"endnote").unwrap_or(1);
+                settings.picture_start = attr_u16(e, b"pic").unwrap_or(1);
+                settings.table_start = attr_u16(e, b"tbl").unwrap_or(1);
+                settings.equation_start = attr_u16(e, b"equation").unwrap_or(1);
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -120,10 +120,8 @@ fn parse_fontfaces(reader: &mut Reader<&[u8]>) -> Result<FontFaces, HwpxError> {
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"fontfaces" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"fontfaces" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -175,10 +173,8 @@ fn parse_font(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"font" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"font" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -197,15 +193,11 @@ fn parse_char_properties(reader: &mut Reader<&[u8]>) -> Result<Vec<CharShape>, H
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"charPr" {
-                    shapes.push(parse_char_shape(e, reader)?);
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"charPr" => {
+                shapes.push(parse_char_shape(e, reader)?);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"charProperties" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"charProperties" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -341,10 +333,8 @@ fn parse_char_shape(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"charPr" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"charPr" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -363,15 +353,11 @@ fn parse_border_fills(reader: &mut Reader<&[u8]>) -> Result<Vec<BorderFill>, Hwp
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"borderFill" {
-                    fills.push(parse_border_fill(e, reader)?);
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"borderFill" => {
+                fills.push(parse_border_fill(e, reader)?);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"borderFills" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"borderFills" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -420,15 +406,11 @@ fn parse_border_fill(
                 b"diagonal" => bf.diagonal = parse_line_spec(e),
                 _ => {}
             },
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"fillBrush" {
-                    bf.fill = parse_fill_brush(reader)?;
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"fillBrush" => {
+                bf.fill = parse_fill_brush(reader)?;
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"borderFill" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"borderFill" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -485,16 +467,15 @@ fn parse_fill_brush(reader: &mut Reader<&[u8]>) -> Result<Option<FillBrush>, Hwp
                     let mut gbuf = Vec::new();
                     loop {
                         match reader.read_event_into(&mut gbuf)? {
-                            Event::Empty(ref ce) | Event::Start(ref ce) => {
-                                if local_name(ce.name().as_ref()) == b"color" {
-                                    colors
-                                        .push(attr_str(ce, b"value").and_then(|s| parse_color(&s)));
-                                }
+                            Event::Empty(ref ce) | Event::Start(ref ce)
+                                if local_name(ce.name().as_ref()) == b"color" =>
+                            {
+                                colors.push(attr_str(ce, b"value").and_then(|s| parse_color(&s)));
                             }
-                            Event::End(ref ce) => {
-                                if local_name(ce.name().as_ref()) == b"gradation" {
-                                    break;
-                                }
+                            Event::End(ref ce)
+                                if local_name(ce.name().as_ref()) == b"gradation" =>
+                            {
+                                break;
                             }
                             Event::Eof => break,
                             _ => {}
@@ -520,24 +501,22 @@ fn parse_fill_brush(reader: &mut Reader<&[u8]>) -> Result<Option<FillBrush>, Hwp
                     let mut ibuf = Vec::new();
                     loop {
                         match reader.read_event_into(&mut ibuf)? {
-                            Event::Empty(ref ie) | Event::Start(ref ie) => {
-                                if local_name(ie.name().as_ref()) == b"img" {
-                                    img = ImageRef {
-                                        binary_item_id: attr_str(ie, b"binaryItemIDRef")
-                                            .unwrap_or_default(),
-                                        bright: attr_i8(ie, b"bright").unwrap_or(0),
-                                        contrast: attr_i8(ie, b"contrast").unwrap_or(0),
-                                        effect: parse_image_effect(
-                                            &attr_str(ie, b"effect").unwrap_or_default(),
-                                        ),
-                                        alpha: attr_u8(ie, b"alpha").unwrap_or(0),
-                                    };
-                                }
+                            Event::Empty(ref ie) | Event::Start(ref ie)
+                                if local_name(ie.name().as_ref()) == b"img" =>
+                            {
+                                img = ImageRef {
+                                    binary_item_id: attr_str(ie, b"binaryItemIDRef")
+                                        .unwrap_or_default(),
+                                    bright: attr_i8(ie, b"bright").unwrap_or(0),
+                                    contrast: attr_i8(ie, b"contrast").unwrap_or(0),
+                                    effect: parse_image_effect(
+                                        &attr_str(ie, b"effect").unwrap_or_default(),
+                                    ),
+                                    alpha: attr_u8(ie, b"alpha").unwrap_or(0),
+                                };
                             }
-                            Event::End(ref ie) => {
-                                if local_name(ie.name().as_ref()) == b"imgBrush" {
-                                    break;
-                                }
+                            Event::End(ref ie) if local_name(ie.name().as_ref()) == b"imgBrush" => {
+                                break;
                             }
                             Event::Eof => break,
                             _ => {}
@@ -548,10 +527,8 @@ fn parse_fill_brush(reader: &mut Reader<&[u8]>) -> Result<Option<FillBrush>, Hwp
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"fillBrush" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"fillBrush" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -581,20 +558,14 @@ fn parse_tab_properties(reader: &mut Reader<&[u8]>) -> Result<Vec<TabDef>, HwpxE
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) => {
-                if local_name(e.name().as_ref()) == b"tabPr" {
-                    defs.push(parse_tab_def(e, reader, true)?);
-                }
+            Event::Empty(ref e) if local_name(e.name().as_ref()) == b"tabPr" => {
+                defs.push(parse_tab_def(e, reader, true)?);
             }
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"tabPr" {
-                    defs.push(parse_tab_def(e, reader, false)?);
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"tabPr" => {
+                defs.push(parse_tab_def(e, reader, false)?);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"tabProperties" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"tabProperties" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -624,19 +595,17 @@ fn parse_tab_def(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"tabItem" {
-                    td.items.push(TabItem {
-                        pos: attr_i32(e, b"pos").unwrap_or(0),
-                        tab_type: parse_tab_type_res(&attr_str(e, b"type").unwrap_or_default()),
-                        leader: parse_line_type2_str(&attr_str(e, b"leader").unwrap_or_default()),
-                    });
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"tabItem" =>
+            {
+                td.items.push(TabItem {
+                    pos: attr_i32(e, b"pos").unwrap_or(0),
+                    tab_type: parse_tab_type_res(&attr_str(e, b"type").unwrap_or_default()),
+                    leader: parse_line_type2_str(&attr_str(e, b"leader").unwrap_or_default()),
+                });
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"tabPr" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"tabPr" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -655,15 +624,11 @@ fn parse_numberings(reader: &mut Reader<&[u8]>) -> Result<Vec<Numbering>, HwpxEr
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"numbering" {
-                    nums.push(parse_numbering(e, reader)?);
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"numbering" => {
+                nums.push(parse_numbering(e, reader)?);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"numberings" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"numberings" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -687,74 +652,62 @@ fn parse_numbering(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) => {
-                if local_name(e.name().as_ref()) == b"paraHead" {
-                    num.levels.push(NumberingLevel {
-                        level: attr_u8(e, b"level").unwrap_or(1),
-                        start: attr_u16(e, b"start").unwrap_or(1),
-                        align: parse_halign(&attr_str(e, b"align").unwrap_or_default()),
-                        use_inst_width: attr_bool(e, b"useInstWidth").unwrap_or(false),
-                        auto_indent: attr_bool(e, b"autoIndent").unwrap_or(false),
-                        width_adjust: attr_i32(e, b"widthAdjust").unwrap_or(0),
-                        text_offset_type: parse_value_unit(
-                            &attr_str(e, b"textOffsetType").unwrap_or_default(),
-                        ),
-                        text_offset: attr_i32(e, b"textOffset").unwrap_or(0),
-                        num_format: parse_number_type2(
-                            &attr_str(e, b"numFormat").unwrap_or_default(),
-                        ),
-                        char_shape_id: attr_u32(e, b"charPrIDRef"),
-                        checkable: attr_bool(e, b"checkable").unwrap_or(false),
-                        format_string: String::new(),
-                    });
-                }
+            Event::Empty(ref e) if local_name(e.name().as_ref()) == b"paraHead" => {
+                num.levels.push(NumberingLevel {
+                    level: attr_u8(e, b"level").unwrap_or(1),
+                    start: attr_u16(e, b"start").unwrap_or(1),
+                    align: parse_halign(&attr_str(e, b"align").unwrap_or_default()),
+                    use_inst_width: attr_bool(e, b"useInstWidth").unwrap_or(false),
+                    auto_indent: attr_bool(e, b"autoIndent").unwrap_or(false),
+                    width_adjust: attr_i32(e, b"widthAdjust").unwrap_or(0),
+                    text_offset_type: parse_value_unit(
+                        &attr_str(e, b"textOffsetType").unwrap_or_default(),
+                    ),
+                    text_offset: attr_i32(e, b"textOffset").unwrap_or(0),
+                    num_format: parse_number_type2(&attr_str(e, b"numFormat").unwrap_or_default()),
+                    char_shape_id: attr_u32(e, b"charPrIDRef"),
+                    checkable: attr_bool(e, b"checkable").unwrap_or(false),
+                    format_string: String::new(),
+                });
             }
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"paraHead" {
-                    let mut level = NumberingLevel {
-                        level: attr_u8(e, b"level").unwrap_or(1),
-                        start: attr_u16(e, b"start").unwrap_or(1),
-                        align: parse_halign(&attr_str(e, b"align").unwrap_or_default()),
-                        use_inst_width: attr_bool(e, b"useInstWidth").unwrap_or(false),
-                        auto_indent: attr_bool(e, b"autoIndent").unwrap_or(false),
-                        width_adjust: attr_i32(e, b"widthAdjust").unwrap_or(0),
-                        text_offset_type: parse_value_unit(
-                            &attr_str(e, b"textOffsetType").unwrap_or_default(),
-                        ),
-                        text_offset: attr_i32(e, b"textOffset").unwrap_or(0),
-                        num_format: parse_number_type2(
-                            &attr_str(e, b"numFormat").unwrap_or_default(),
-                        ),
-                        char_shape_id: attr_u32(e, b"charPrIDRef"),
-                        checkable: attr_bool(e, b"checkable").unwrap_or(false),
-                        format_string: String::new(),
-                    };
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"paraHead" => {
+                let mut level = NumberingLevel {
+                    level: attr_u8(e, b"level").unwrap_or(1),
+                    start: attr_u16(e, b"start").unwrap_or(1),
+                    align: parse_halign(&attr_str(e, b"align").unwrap_or_default()),
+                    use_inst_width: attr_bool(e, b"useInstWidth").unwrap_or(false),
+                    auto_indent: attr_bool(e, b"autoIndent").unwrap_or(false),
+                    width_adjust: attr_i32(e, b"widthAdjust").unwrap_or(0),
+                    text_offset_type: parse_value_unit(
+                        &attr_str(e, b"textOffsetType").unwrap_or_default(),
+                    ),
+                    text_offset: attr_i32(e, b"textOffset").unwrap_or(0),
+                    num_format: parse_number_type2(&attr_str(e, b"numFormat").unwrap_or_default()),
+                    char_shape_id: attr_u32(e, b"charPrIDRef"),
+                    checkable: attr_bool(e, b"checkable").unwrap_or(false),
+                    format_string: String::new(),
+                };
 
-                    // paraHead의 텍스트 내용 읽기
-                    let mut tbuf = Vec::new();
-                    loop {
-                        match reader.read_event_into(&mut tbuf)? {
-                            Event::Text(ref t) => {
-                                level.format_string = t.unescape().unwrap_or_default().to_string();
-                            }
-                            Event::End(ref end) => {
-                                if local_name(end.name().as_ref()) == b"paraHead" {
-                                    break;
-                                }
-                            }
-                            Event::Eof => break,
-                            _ => {}
+                // paraHead의 텍스트 내용 읽기
+                let mut tbuf = Vec::new();
+                loop {
+                    match reader.read_event_into(&mut tbuf)? {
+                        Event::Text(ref t) => {
+                            level.format_string = t.unescape().unwrap_or_default().to_string();
                         }
-                        tbuf.clear();
+                        Event::End(ref end) if local_name(end.name().as_ref()) == b"paraHead" => {
+                            break;
+                        }
+                        Event::Eof => break,
+                        _ => {}
                     }
+                    tbuf.clear();
+                }
 
-                    num.levels.push(level);
-                }
+                num.levels.push(level);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"numbering" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"numbering" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -773,15 +726,11 @@ fn parse_bullets(reader: &mut Reader<&[u8]>) -> Result<Vec<Bullet>, HwpxError> {
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"bullet" {
-                    bullets.push(parse_bullet(e, reader)?);
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"bullet" => {
+                bullets.push(parse_bullet(e, reader)?);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"bullets" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"bullets" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -835,10 +784,8 @@ fn parse_bullet(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"bullet" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"bullet" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -857,15 +804,11 @@ fn parse_para_properties(reader: &mut Reader<&[u8]>) -> Result<Vec<ParaShape>, H
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"paraPr" {
-                    shapes.push(parse_para_shape(e, reader)?);
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"paraPr" => {
+                shapes.push(parse_para_shape(e, reader)?);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"paraProperties" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"paraProperties" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -956,7 +899,7 @@ fn parse_para_shape(
                             spacing_type: parse_line_spacing_type(
                                 &attr_str(e, b"type").unwrap_or_default(),
                             ),
-                            value: attr_i32(e, b"value").unwrap_or(160) as i32,
+                            value: attr_i32(e, b"value").unwrap_or(160),
                             unit: parse_value_unit(&attr_str(e, b"unit").unwrap_or_default()),
                         };
                     }
@@ -974,10 +917,8 @@ fn parse_para_shape(
                     _ => {}
                 }
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"paraPr" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"paraPr" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1008,10 +949,8 @@ fn parse_para_margin(reader: &mut Reader<&[u8]>) -> Result<ParagraphMargin, Hwpx
                     _ => {}
                 }
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"margin" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"margin" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1030,25 +969,23 @@ fn parse_styles(reader: &mut Reader<&[u8]>) -> Result<Vec<Style>, HwpxError> {
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"style" {
-                    styles.push(Style {
-                        id: attr_u16(e, b"id").unwrap_or(0),
-                        style_type: parse_style_type(&attr_str(e, b"type").unwrap_or_default()),
-                        name: attr_str(e, b"name").unwrap_or_default(),
-                        eng_name: attr_str(e, b"engName").unwrap_or_default(),
-                        para_shape_id: attr_u16(e, b"paraPrIDRef"),
-                        char_shape_id: attr_u16(e, b"charPrIDRef"),
-                        next_style_id: attr_u16(e, b"nextStyleIDRef"),
-                        lang_id: attr_u16(e, b"langID"),
-                        lock_form: attr_bool(e, b"lockForm"),
-                    });
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"style" =>
+            {
+                styles.push(Style {
+                    id: attr_u16(e, b"id").unwrap_or(0),
+                    style_type: parse_style_type(&attr_str(e, b"type").unwrap_or_default()),
+                    name: attr_str(e, b"name").unwrap_or_default(),
+                    eng_name: attr_str(e, b"engName").unwrap_or_default(),
+                    para_shape_id: attr_u16(e, b"paraPrIDRef"),
+                    char_shape_id: attr_u16(e, b"charPrIDRef"),
+                    next_style_id: attr_u16(e, b"nextStyleIDRef"),
+                    lang_id: attr_u16(e, b"langID"),
+                    lock_form: attr_bool(e, b"lockForm"),
+                });
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"styles" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"styles" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1065,17 +1002,13 @@ fn skip_to_end(reader: &mut Reader<&[u8]>, tag: &[u8]) -> Result<(), HwpxError> 
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == tag {
-                    depth += 1;
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == tag => {
+                depth += 1;
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == tag {
-                    depth -= 1;
-                    if depth == 0 {
-                        break;
-                    }
+            Event::End(ref e) if local_name(e.name().as_ref()) == tag => {
+                depth -= 1;
+                if depth == 0 {
+                    break;
                 }
             }
             Event::Eof => break,

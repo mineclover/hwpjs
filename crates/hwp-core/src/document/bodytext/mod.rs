@@ -612,16 +612,8 @@ impl Section {
                                     let cell_idx = table.cells.len();
                                     let row_count = table.attributes.row_count as usize;
                                     let col_count = table.attributes.col_count as usize;
-                                    let row = if col_count > 0 {
-                                        cell_idx / col_count
-                                    } else {
-                                        0
-                                    };
-                                    let col = if col_count > 0 {
-                                        cell_idx % col_count
-                                    } else {
-                                        0
-                                    };
+                                    let row = cell_idx.checked_div(col_count).unwrap_or(0);
+                                    let col = cell_idx.checked_rem(col_count).unwrap_or(0);
 
                                     use crate::document::bodytext::table::CellAttributes;
                                     use crate::types::HWPUNIT;

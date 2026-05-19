@@ -11,10 +11,8 @@ pub fn collect_text_and_images_from_paragraph(
 ) {
     for record in &para.records {
         match record {
-            ParagraphRecord::ParaText { text, .. } => {
-                if !text.trim().is_empty() {
-                    table_cell_texts.insert(text.trim().to_string());
-                }
+            ParagraphRecord::ParaText { text, .. } if !text.trim().is_empty() => {
+                table_cell_texts.insert(text.trim().to_string());
             }
             ParagraphRecord::ShapeComponentPicture {
                 shape_component_picture,

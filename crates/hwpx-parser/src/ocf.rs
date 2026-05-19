@@ -32,20 +32,20 @@ pub fn parse_version<R: Read + Seek>(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"HCFVersion" {
-                    version.major = attr_str(e, b"major")
-                        .and_then(|v| v.parse().ok())
-                        .unwrap_or(5);
-                    version.minor = attr_str(e, b"minor")
-                        .and_then(|v| v.parse().ok())
-                        .unwrap_or(0);
-                    version.micro = attr_str(e, b"micro")
-                        .and_then(|v| v.parse().ok())
-                        .unwrap_or(0);
-                    version.xml_version = attr_str(e, b"xmlVersion").unwrap_or_default();
-                    version.app_version = attr_str(e, b"appVersion").unwrap_or_default();
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"HCFVersion" =>
+            {
+                version.major = attr_str(e, b"major")
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(5);
+                version.minor = attr_str(e, b"minor")
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(0);
+                version.micro = attr_str(e, b"micro")
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(0);
+                version.xml_version = attr_str(e, b"xmlVersion").unwrap_or_default();
+                version.app_version = attr_str(e, b"appVersion").unwrap_or_default();
             }
             Event::Eof => break,
             _ => {}

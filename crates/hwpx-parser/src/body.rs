@@ -26,14 +26,12 @@ pub fn parse_section<R: Read + Seek>(
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"p" {
-                    let (para, sec_def) = parse_paragraph(e, &mut reader)?;
-                    if let Some(sd) = sec_def {
-                        section.definition = sd;
-                    }
-                    section.paragraphs.push(para);
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"p" => {
+                let (para, sec_def) = parse_paragraph(e, &mut reader)?;
+                if let Some(sd) = sec_def {
+                    section.definition = sd;
                 }
+                section.paragraphs.push(para);
             }
             Event::Eof => break,
             _ => {}
@@ -81,10 +79,8 @@ fn parse_paragraph(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"p" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"p" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -216,15 +212,11 @@ fn parse_run(
                     skip_element(reader, e.name().as_ref())?;
                 }
             },
-            Event::Empty(ref e) => {
-                if local_name(e.name().as_ref()) == b"t" {
-                    run.contents.push(RunContent::Text(TextContent::default()));
-                }
+            Event::Empty(ref e) if local_name(e.name().as_ref()) == b"t" => {
+                run.contents.push(RunContent::Text(TextContent::default()));
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"run" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"run" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -315,10 +307,8 @@ fn parse_sec_pr(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"secPr" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"secPr" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -344,23 +334,21 @@ fn parse_page_pr(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"margin" {
-                    pd.margin = PageMargin {
-                        left: attr_i32(e, b"left").unwrap_or(0),
-                        right: attr_i32(e, b"right").unwrap_or(0),
-                        top: attr_i32(e, b"top").unwrap_or(0),
-                        bottom: attr_i32(e, b"bottom").unwrap_or(0),
-                        header: attr_i32(e, b"header").unwrap_or(0),
-                        footer: attr_i32(e, b"footer").unwrap_or(0),
-                        gutter: attr_i32(e, b"gutter").unwrap_or(0),
-                    };
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"margin" =>
+            {
+                pd.margin = PageMargin {
+                    left: attr_i32(e, b"left").unwrap_or(0),
+                    right: attr_i32(e, b"right").unwrap_or(0),
+                    top: attr_i32(e, b"top").unwrap_or(0),
+                    bottom: attr_i32(e, b"bottom").unwrap_or(0),
+                    header: attr_i32(e, b"header").unwrap_or(0),
+                    footer: attr_i32(e, b"footer").unwrap_or(0),
+                    gutter: attr_i32(e, b"gutter").unwrap_or(0),
+                };
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"pagePr" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"pagePr" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -413,10 +401,8 @@ fn parse_footnote_pr(reader: &mut Reader<&[u8]>) -> Result<FootNoteDef, HwpxErro
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"footNotePr" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"footNotePr" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -469,10 +455,8 @@ fn parse_endnote_pr(reader: &mut Reader<&[u8]>) -> Result<EndNoteDef, HwpxError>
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"endNotePr" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"endNotePr" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -499,20 +483,18 @@ fn parse_page_border_fill(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"offset" {
-                    pbf.offset = Margin {
-                        left: attr_i32(e, b"left").unwrap_or(0),
-                        right: attr_i32(e, b"right").unwrap_or(0),
-                        top: attr_i32(e, b"top").unwrap_or(0),
-                        bottom: attr_i32(e, b"bottom").unwrap_or(0),
-                    };
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"offset" =>
+            {
+                pbf.offset = Margin {
+                    left: attr_i32(e, b"left").unwrap_or(0),
+                    right: attr_i32(e, b"right").unwrap_or(0),
+                    top: attr_i32(e, b"top").unwrap_or(0),
+                    bottom: attr_i32(e, b"bottom").unwrap_or(0),
+                };
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"pageBorderFill" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"pageBorderFill" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -592,10 +574,8 @@ fn parse_ctrl(reader: &mut Reader<&[u8]>) -> Result<Option<Control>, HwpxError> 
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"ctrl" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"ctrl" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -622,15 +602,11 @@ fn parse_header_footer(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"subList" {
-                    hf.content = parse_sublist(e, reader)?;
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"subList" => {
+                hf.content = parse_sublist(e, reader)?;
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == tag_name.as_slice() {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == tag_name.as_slice() => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -655,15 +631,11 @@ fn parse_note(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"subList" {
-                    note.content = parse_sublist(e, reader)?;
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"subList" => {
+                note.content = parse_sublist(e, reader)?;
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == tag_name.as_slice() {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == tag_name.as_slice() => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -687,18 +659,16 @@ fn parse_auto_num(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"autoNumFormat" {
-                    an.number_type = parse_number_type1(&attr_str(e, b"type").unwrap_or_default());
-                    an.user_char = attr_str(e, b"userChar").filter(|s| !s.is_empty());
-                    an.prefix_char = attr_str(e, b"prefixChar").filter(|s| !s.is_empty());
-                    an.suffix_char = attr_str(e, b"suffixChar").filter(|s| !s.is_empty());
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"autoNumFormat" =>
+            {
+                an.number_type = parse_number_type1(&attr_str(e, b"type").unwrap_or_default());
+                an.user_char = attr_str(e, b"userChar").filter(|s| !s.is_empty());
+                an.prefix_char = attr_str(e, b"prefixChar").filter(|s| !s.is_empty());
+                an.suffix_char = attr_str(e, b"suffixChar").filter(|s| !s.is_empty());
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"autoNum" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"autoNum" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -733,16 +703,12 @@ fn parse_sublist(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"p" {
-                    let (para, _) = parse_paragraph(e, reader)?;
-                    sl.paragraphs.push(para);
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"p" => {
+                let (para, _) = parse_paragraph(e, reader)?;
+                sl.paragraphs.push(para);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"subList" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"subList" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -802,10 +768,8 @@ fn parse_table(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"tbl" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"tbl" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -822,15 +786,11 @@ fn parse_table_row(reader: &mut Reader<&[u8]>) -> Result<TableRow, HwpxError> {
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"tc" {
-                    row.cells.push(parse_table_cell(e, reader)?);
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"tc" => {
+                row.cells.push(parse_table_cell(e, reader)?);
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"tr" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"tr" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -880,10 +840,8 @@ fn parse_table_cell(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"tc" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"tc" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -992,10 +950,8 @@ fn parse_picture(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"pic" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"pic" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1146,10 +1102,8 @@ fn parse_text_content(
                     }
                     _ => {}
                 },
-                Event::End(ref e) => {
-                    if local_name(e.name().as_ref()) == b"t" {
-                        break;
-                    }
+                Event::End(ref e) if local_name(e.name().as_ref()) == b"t" => {
+                    break;
                 }
                 Event::Eof => break,
                 _ => {}
@@ -1528,10 +1482,8 @@ fn parse_line_object(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"line" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"line" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1626,10 +1578,8 @@ fn parse_rect_object(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"rect" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"rect" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1723,10 +1673,8 @@ fn parse_polygon_object(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"polygon" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"polygon" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1770,10 +1718,8 @@ fn parse_curve_object(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"curve" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"curve" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1809,10 +1755,8 @@ fn parse_equation_object(
                     _ => {}
                 }
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"equation" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"equation" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1882,10 +1826,8 @@ fn parse_container_object(
                 b"pos" => parse_shape_pos(&mut obj.common, e),
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"container" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"container" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1931,15 +1873,11 @@ fn parse_draw_text(reader: &mut Reader<&[u8]>) -> Result<SubList, HwpxError> {
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"subList" {
-                    sl = parse_sublist(e, reader)?;
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"subList" => {
+                sl = parse_sublist(e, reader)?;
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"drawText" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"drawText" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1965,15 +1903,11 @@ fn parse_caption(
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"subList" {
-                    cap.content = parse_sublist(e, reader)?;
-                }
+            Event::Start(ref e) if local_name(e.name().as_ref()) == b"subList" => {
+                cap.content = parse_sublist(e, reader)?;
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"caption" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"caption" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -1993,20 +1927,18 @@ fn parse_fill_brush_body(
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"winBrush" {
-                    result = Some(FillBrush::WinBrush {
-                        face_color: attr_str(e, b"faceColor").and_then(|s| parse_color(&s)),
-                        hatch_color: attr_str(e, b"hatchColor").and_then(|s| parse_color(&s)),
-                        hatch_style: None,
-                        alpha: attr_u8(e, b"alpha").unwrap_or(0),
-                    });
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"winBrush" =>
+            {
+                result = Some(FillBrush::WinBrush {
+                    face_color: attr_str(e, b"faceColor").and_then(|s| parse_color(&s)),
+                    hatch_color: attr_str(e, b"hatchColor").and_then(|s| parse_color(&s)),
+                    hatch_style: None,
+                    alpha: attr_u8(e, b"alpha").unwrap_or(0),
+                });
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"fillBrush" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"fillBrush" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2070,10 +2002,8 @@ fn parse_generic_shape(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == tag {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == tag => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2114,10 +2044,8 @@ fn parse_field_begin(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"fieldBegin" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"fieldBegin" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2157,10 +2085,8 @@ fn parse_field_parameters(reader: &mut Reader<&[u8]>) -> Result<Vec<FieldParamet
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"parameters" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"parameters" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2312,10 +2238,8 @@ fn parse_ole_object(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"ole" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"ole" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2374,10 +2298,8 @@ fn parse_connect_line(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"connectLine" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"connectLine" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2464,10 +2386,8 @@ fn parse_textart_object(
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"textart" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"textart" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2487,25 +2407,23 @@ fn parse_linesegarray(reader: &mut Reader<&[u8]>) -> Result<Vec<LineSegmentInfo>
 
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"lineseg" {
-                    segments.push(LineSegmentInfo {
-                        text_start_pos: attr_u32(e, b"textpos").unwrap_or(0),
-                        vertical_pos: attr_i32(e, b"vertpos").unwrap_or(0),
-                        line_height: attr_i32(e, b"vertsize").unwrap_or(0),
-                        text_height: attr_i32(e, b"textheight").unwrap_or(0),
-                        baseline_distance: attr_i32(e, b"baseline").unwrap_or(0),
-                        line_spacing: attr_i32(e, b"spacing").unwrap_or(0),
-                        column_start_pos: attr_i32(e, b"horzpos").unwrap_or(0),
-                        segment_width: attr_i32(e, b"horzsize").unwrap_or(0),
-                        flags: attr_u32(e, b"flags").unwrap_or(0),
-                    });
-                }
+            Event::Empty(ref e) | Event::Start(ref e)
+                if local_name(e.name().as_ref()) == b"lineseg" =>
+            {
+                segments.push(LineSegmentInfo {
+                    text_start_pos: attr_u32(e, b"textpos").unwrap_or(0),
+                    vertical_pos: attr_i32(e, b"vertpos").unwrap_or(0),
+                    line_height: attr_i32(e, b"vertsize").unwrap_or(0),
+                    text_height: attr_i32(e, b"textheight").unwrap_or(0),
+                    baseline_distance: attr_i32(e, b"baseline").unwrap_or(0),
+                    line_spacing: attr_i32(e, b"spacing").unwrap_or(0),
+                    column_start_pos: attr_i32(e, b"horzpos").unwrap_or(0),
+                    segment_width: attr_i32(e, b"horzsize").unwrap_or(0),
+                    flags: attr_u32(e, b"flags").unwrap_or(0),
+                });
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"linesegarray" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"linesegarray" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2553,10 +2471,8 @@ fn parse_img_rect(reader: &mut Reader<&[u8]>) -> Result<[Point; 4], HwpxError> {
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"imgRect" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"imgRect" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2571,18 +2487,14 @@ fn parse_outline_points(reader: &mut Reader<&[u8]>) -> Result<Vec<Point>, HwpxEr
     let mut buf = Vec::new();
     loop {
         match reader.read_event_into(&mut buf)? {
-            Event::Empty(ref e) | Event::Start(ref e) => {
-                if local_name(e.name().as_ref()) == b"pt" {
-                    points.push(Point {
-                        x: attr_i32(e, b"x").unwrap_or(0),
-                        y: attr_i32(e, b"y").unwrap_or(0),
-                    });
-                }
+            Event::Empty(ref e) | Event::Start(ref e) if local_name(e.name().as_ref()) == b"pt" => {
+                points.push(Point {
+                    x: attr_i32(e, b"x").unwrap_or(0),
+                    y: attr_i32(e, b"y").unwrap_or(0),
+                });
             }
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"outline" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"outline" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2617,10 +2529,8 @@ fn parse_video_object(
                 b"outMargin" => obj.common.out_margin = Some(parse_margin_attrs(e)),
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"video" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"video" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
@@ -2731,10 +2641,8 @@ fn parse_picture_effects(reader: &mut Reader<&[u8]>) -> Result<PictureEffects, H
                 }
                 _ => {}
             },
-            Event::End(ref e) => {
-                if local_name(e.name().as_ref()) == b"effects" {
-                    break;
-                }
+            Event::End(ref e) if local_name(e.name().as_ref()) == b"effects" => {
+                break;
             }
             Event::Eof => break,
             _ => {}
