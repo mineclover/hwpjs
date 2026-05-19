@@ -19,7 +19,7 @@ import type { TableSchema } from '../table-schema.js';
 export function collectAllTableSchemas(
   obj: unknown,
   basePath = '',
-  out: Array<{ schema: TableSchema; path: string }> = [],
+  out: Array<{ schema: TableSchema; path: string }> = []
 ): Array<{ schema: TableSchema; path: string }> {
   if (!obj || typeof obj !== 'object') return out;
   if (Array.isArray(obj)) {
@@ -41,7 +41,7 @@ export function collectAllTableSchemas(
  * 객체 트리에서 tableSchema 값만 순서대로 반환한다 (path 없이).
  */
 export function collectTableSchemas(obj: unknown): TableSchema[] {
-  return collectAllTableSchemas(obj).map(e => e.schema);
+  return collectAllTableSchemas(obj).map((e) => e.schema);
 }
 
 // ─── raw table 노드 수집 ─────────────────────────────────────────────────────
@@ -52,10 +52,16 @@ export function collectTableSchemas(obj: unknown): TableSchema[] {
  */
 export function collectRawTables(obj: unknown, out: unknown[] = []): unknown[] {
   if (!obj || typeof obj !== 'object') return out;
-  if (Array.isArray(obj)) { obj.forEach(v => collectRawTables(v, out)); return out; }
+  if (Array.isArray(obj)) {
+    obj.forEach((v) => collectRawTables(v, out));
+    return out;
+  }
   const rec = obj as Record<string, unknown>;
-  if ('table' in rec) { out.push(rec['table']); return out; }
-  Object.values(rec).forEach(v => collectRawTables(v, out));
+  if ('table' in rec) {
+    out.push(rec['table']);
+    return out;
+  }
+  Object.values(rec).forEach((v) => collectRawTables(v, out));
   return out;
 }
 
@@ -66,12 +72,15 @@ export function collectRawTables(obj: unknown, out: unknown[] = []): unknown[] {
  */
 export function collectBinIds(obj: unknown, out: number[] = []): number[] {
   if (!obj || typeof obj !== 'object') return out;
-  if (Array.isArray(obj)) { obj.forEach(v => collectBinIds(v, out)); return out; }
+  if (Array.isArray(obj)) {
+    obj.forEach((v) => collectBinIds(v, out));
+    return out;
+  }
   const rec = obj as Record<string, unknown>;
   if (rec['type'] === 'shape_component_picture') {
     const id = (rec['shape_component_picture'] as any)?.picture_info?.bindata_id;
     if (typeof id === 'number') out.push(id);
   }
-  Object.values(rec).forEach(v => collectBinIds(v, out));
+  Object.values(rec).forEach((v) => collectBinIds(v, out));
   return out;
 }

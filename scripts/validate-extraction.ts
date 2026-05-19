@@ -20,7 +20,9 @@ import { join } from 'path';
 const [, , anomaliesPath, contentsPath, outDir = 'pipeline/stage1/validation'] = process.argv;
 
 if (!anomaliesPath || !contentsPath) {
-  console.error('Usage: bun scripts/validate-extraction.ts <anomalies.json> <contents-list.json> [output-dir]');
+  console.error(
+    'Usage: bun scripts/validate-extraction.ts <anomalies.json> <contents-list.json> [output-dir]'
+  );
   process.exit(1);
 }
 
@@ -47,11 +49,11 @@ interface CourseEntry {
 }
 
 type MatchStatus =
-  | 'OK'              // 추출 수 일치
-  | 'COUNT_MISMATCH'  // 추출 수 불일치 (실제 오차)
-  | 'EXTRACTION_ERROR'// 추출 자체 실패 (weekly_plan not found)
+  | 'OK' // 추출 수 일치
+  | 'COUNT_MISMATCH' // 추출 수 불일치 (실제 오차)
+  | 'EXTRACTION_ERROR' // 추출 자체 실패 (weekly_plan not found)
   | 'NO_GROUND_TRUTH' // contents-list에 매핑 안됨
-  | 'NO_HWP_FILE';    // HWP 파일이 없어서 검증 불가
+  | 'NO_HWP_FILE'; // HWP 파일이 없어서 검증 불가
 
 interface ValidationResult {
   hwp_file: string;
@@ -71,8 +73,8 @@ interface ValidationResult {
  */
 function extractTitleFromFilename(filename: string): string {
   let name = filename
-    .replace(/^\d+\.\s*/, '')        // "001. " 또는 "021." 제거
-    .replace(/강의계획서_/, '')       // 접두어 제거
+    .replace(/^\d+\.\s*/, '') // "001. " 또는 "021." 제거
+    .replace(/강의계획서_/, '') // 접두어 제거
     .replace(/\.hwp(\.[a-z]+)?$/i, ''); // .hwp, .hwp.hwp 등 제거
 
   // 마지막 _강사명 제거 (단, 제목 자체에 _가 없을 수도 있음)
@@ -117,7 +119,7 @@ for (const record of anomalies) {
   const extractedCount = weeklyPlan?.found ? (weeklyPlan.count ?? null) : null;
 
   // Ground truth 매칭
-  const matched = courses.find(c => fuzzyMatch(titleExtracted, c.title));
+  const matched = courses.find((c) => fuzzyMatch(titleExtracted, c.title));
 
   if (!matched) {
     results.push({
@@ -163,10 +165,10 @@ for (const record of anomalies) {
 
 const summary = {
   total: results.length,
-  ok: results.filter(r => r.status === 'OK').length,
-  count_mismatch: results.filter(r => r.status === 'COUNT_MISMATCH').length,
-  extraction_error: results.filter(r => r.status === 'EXTRACTION_ERROR').length,
-  no_ground_truth: results.filter(r => r.status === 'NO_GROUND_TRUTH').length,
+  ok: results.filter((r) => r.status === 'OK').length,
+  count_mismatch: results.filter((r) => r.status === 'COUNT_MISMATCH').length,
+  extraction_error: results.filter((r) => r.status === 'EXTRACTION_ERROR').length,
+  no_ground_truth: results.filter((r) => r.status === 'NO_GROUND_TRUTH').length,
 };
 
 // ─── Output ───────────────────────────────────────────────────────────────────
@@ -177,16 +179,17 @@ const report = { summary, results };
 writeFileSync(join(outDir, 'validation.json'), JSON.stringify(report, null, 2), 'utf8');
 
 // HTML 리포트
-const rows = results.map(r => {
-  const colorMap: Record<MatchStatus, string> = {
-    OK: '#22c55e',
-    COUNT_MISMATCH: '#f97316',
-    EXTRACTION_ERROR: '#ef4444',
-    NO_GROUND_TRUTH: '#94a3b8',
-    NO_HWP_FILE: '#94a3b8',
-  };
-  const color = colorMap[r.status];
-  return `
+const rows = results
+  .map((r) => {
+    const colorMap: Record<MatchStatus, string> = {
+      OK: '#22c55e',
+      COUNT_MISMATCH: '#f97316',
+      EXTRACTION_ERROR: '#ef4444',
+      NO_GROUND_TRUTH: '#94a3b8',
+      NO_HWP_FILE: '#94a3b8',
+    };
+    const color = colorMap[r.status];
+    return `
     <tr>
       <td>${r.hwp_file}</td>
       <td>${r.matched_title ?? r.title_extracted}</td>
@@ -195,7 +198,8 @@ const rows = results.map(r => {
       <td style="text-align:center;color:${color};font-weight:600">${r.status}</td>
       <td>${r.note ?? ''}</td>
     </tr>`;
-}).join('');
+  })
+  .join('');
 
 const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -253,8 +257,8 @@ console.log(`  - 매핑 실패:  ${summary.no_ground_truth}개`);
 if (summary.count_mismatch > 0 || summary.extraction_error > 0) {
   console.log('\n문제 항목:');
   results
-    .filter(r => r.status !== 'OK' && r.status !== 'NO_GROUND_TRUTH')
-    .forEach(r => console.log(`  [${r.status}] ${r.hwp_file}\n    → ${r.note}`));
+    .filter((r) => r.status !== 'OK' && r.status !== 'NO_GROUND_TRUTH')
+    .forEach((r) => console.log(`  [${r.status}] ${r.hwp_file}\n    → ${r.note}`));
 }
 
 console.log(`\nJSON:  ${join(outDir, 'validation.json')}`);

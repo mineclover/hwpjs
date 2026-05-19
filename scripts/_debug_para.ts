@@ -1,14 +1,24 @@
 import { toJson } from '../packages/hwpjs/dist/index.js';
 import * as fs from 'fs';
 
-const buf = fs.readFileSync('D:/woo-work/hwp-pipe/001. 강의계획서_Master-K 기반 PLC 제어 기초_송석환.hwp');
+const buf = fs.readFileSync(
+  'D:/woo-work/hwp-pipe/001. 강의계획서_Master-K 기반 PLC 제어 기초_송석환.hwp'
+);
 const json = JSON.parse(toJson(buf));
 const rawParas = json.body_text.sections[0].paragraphs;
 
 function runsText(p: any): string {
-  return (p?.records ?? []).filter((r: any) => r.type === 'para_text')
-    .flatMap((r: any) => r.runs ?? []).filter((r: any) => r.kind === 'text')
-    .map((r: any) => String(r.text ?? '').replace(/[\x00-\x1F]/g, '').trim()).filter(Boolean).join('');
+  return (p?.records ?? [])
+    .filter((r: any) => r.type === 'para_text')
+    .flatMap((r: any) => r.runs ?? [])
+    .filter((r: any) => r.kind === 'text')
+    .map((r: any) =>
+      String(r.text ?? '')
+        .replace(/[\x00-\x1F]/g, '')
+        .trim()
+    )
+    .filter(Boolean)
+    .join('');
 }
 
 // para[23]~[26]
@@ -19,7 +29,9 @@ for (let i = 23; i <= 26; i++) {
   console.log(`\npara[${i}] records: ${recTypes.join(', ')}`);
   for (const rec of p.records ?? []) {
     if (rec.type === 'ctrl_header') {
-      console.log(`  ctrl_id: "${rec.ctrl_id}" | paras: ${rec.paragraphs?.length ?? 0} | children: ${rec.children?.length ?? 0}`);
+      console.log(
+        `  ctrl_id: "${rec.ctrl_id}" | paras: ${rec.paragraphs?.length ?? 0} | children: ${rec.children?.length ?? 0}`
+      );
       for (const cp of rec.paragraphs ?? []) {
         const t = runsText(cp);
         if (t) console.log(`    -> "${t.slice(0, 80)}"`);

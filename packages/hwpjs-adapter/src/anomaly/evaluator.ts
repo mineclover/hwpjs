@@ -36,13 +36,20 @@ function compareNum(actual: number, op: CompareOp, value: number | [number, numb
   }
   const v = value as number;
   switch (op) {
-    case 'eq':  return actual === v;
-    case 'neq': return actual !== v;
-    case 'lt':  return actual < v;
-    case 'lte': return actual <= v;
-    case 'gt':  return actual > v;
-    case 'gte': return actual >= v;
-    default:    return false;
+    case 'eq':
+      return actual === v;
+    case 'neq':
+      return actual !== v;
+    case 'lt':
+      return actual < v;
+    case 'lte':
+      return actual <= v;
+    case 'gt':
+      return actual > v;
+    case 'gte':
+      return actual >= v;
+    default:
+      return false;
   }
 }
 
@@ -54,7 +61,7 @@ function compareAny(actual: unknown, op: CompareOp, value: unknown, pattern?: st
   if (typeof actual === 'number' && typeof value === 'number') {
     return compareNum(actual, op, value);
   }
-  if (op === 'eq')  return actual === value;
+  if (op === 'eq') return actual === value;
   if (op === 'neq') return actual !== value;
   return false;
 }
@@ -76,7 +83,7 @@ function resolveSubArray(field: ExtractedField, subPath: string): unknown[] {
     case 'rows':
       return (field as ExtractedTableRows).rows ?? [];
     case 'values':
-      return (field as ExtractedNumberSet).values?.map(v => ({ value: v })) ?? [];
+      return (field as ExtractedNumberSet).values?.map((v) => ({ value: v })) ?? [];
     default:
       return [];
   }
@@ -124,7 +131,7 @@ function evalCount(c: CountCondition, fields: Record<string, ExtractedField>): E
 
 function evalArrayMatch(
   c: ArrayMatchCondition,
-  fields: Record<string, ExtractedField>,
+  fields: Record<string, ExtractedField>
 ): EvalResult {
   const dotIdx = c.field.indexOf('.');
   const fieldId = dotIdx >= 0 ? c.field.slice(0, dotIdx) : c.field;
@@ -141,15 +148,15 @@ function evalArrayMatch(
   switch (c.quantifier) {
     case 'none':
       // anomaly when none of the items satisfy the condition
-      triggered = arr.length > 0 && arr.every(item => !matchWhere(item, c.where));
+      triggered = arr.length > 0 && arr.every((item) => !matchWhere(item, c.where));
       break;
     case 'any':
       // anomaly when any item satisfies the condition
-      triggered = arr.some(item => matchWhere(item, c.where));
+      triggered = arr.some((item) => matchWhere(item, c.where));
       break;
     case 'all':
       // anomaly when all items satisfy the condition
-      triggered = arr.length > 0 && arr.every(item => matchWhere(item, c.where));
+      triggered = arr.length > 0 && arr.every((item) => matchWhere(item, c.where));
       break;
     default:
       triggered = false;
@@ -160,7 +167,7 @@ function evalArrayMatch(
 
 function evalValueMatch(
   c: ValueMatchCondition,
-  fields: Record<string, ExtractedField>,
+  fields: Record<string, ExtractedField>
 ): EvalResult {
   const field = fields[c.field];
   if (!field?.found) {
@@ -171,10 +178,7 @@ function evalValueMatch(
   return { triggered, detail: `value=${JSON.stringify(actual)}` };
 }
 
-function evalAggregate(
-  c: AggregateCondition,
-  fields: Record<string, ExtractedField>,
-): EvalResult {
+function evalAggregate(c: AggregateCondition, fields: Record<string, ExtractedField>): EvalResult {
   const field = fields[c.field];
   if (!field?.found) {
     return { triggered: true, detail: 'field not found' };
@@ -184,12 +188,23 @@ function evalAggregate(
   let agg: number;
 
   switch (c.fn) {
-    case 'sum':   agg = values.reduce((a, b) => a + b, 0); break;
-    case 'min':   agg = values.length ? Math.min(...values) : 0; break;
-    case 'max':   agg = values.length ? Math.max(...values) : 0; break;
-    case 'avg':   agg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0; break;
-    case 'count': agg = values.length; break;
-    default:      agg = 0;
+    case 'sum':
+      agg = values.reduce((a, b) => a + b, 0);
+      break;
+    case 'min':
+      agg = values.length ? Math.min(...values) : 0;
+      break;
+    case 'max':
+      agg = values.length ? Math.max(...values) : 0;
+      break;
+    case 'avg':
+      agg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+      break;
+    case 'count':
+      agg = values.length;
+      break;
+    default:
+      agg = 0;
   }
 
   const triggered = compareNum(agg, c.op, c.value);
@@ -198,18 +213,23 @@ function evalAggregate(
 
 function evalCondition(condition: Condition, fields: Record<string, ExtractedField>): EvalResult {
   switch (condition.type) {
-    case 'exists':      return evalExists(condition as ExistsCondition, fields);
-    case 'count':       return evalCount(condition as CountCondition, fields);
-    case 'array_match': return evalArrayMatch(condition as ArrayMatchCondition, fields);
-    case 'value_match': return evalValueMatch(condition as ValueMatchCondition, fields);
-    case 'aggregate':   return evalAggregate(condition as AggregateCondition, fields);
+    case 'exists':
+      return evalExists(condition as ExistsCondition, fields);
+    case 'count':
+      return evalCount(condition as CountCondition, fields);
+    case 'array_match':
+      return evalArrayMatch(condition as ArrayMatchCondition, fields);
+    case 'value_match':
+      return evalValueMatch(condition as ValueMatchCondition, fields);
+    case 'aggregate':
+      return evalAggregate(condition as AggregateCondition, fields);
     case 'and': {
-      const results = (condition as AndCondition).conditions.map(c => evalCondition(c, fields));
-      return { triggered: results.every(r => r.triggered) };
+      const results = (condition as AndCondition).conditions.map((c) => evalCondition(c, fields));
+      return { triggered: results.every((r) => r.triggered) };
     }
     case 'or': {
-      const results = (condition as OrCondition).conditions.map(c => evalCondition(c, fields));
-      return { triggered: results.some(r => r.triggered) };
+      const results = (condition as OrCondition).conditions.map((c) => evalCondition(c, fields));
+      return { triggered: results.some((r) => r.triggered) };
     }
     default:
       return { triggered: false };
@@ -230,7 +250,7 @@ function getFieldId(condition: Condition): string | null {
 
 function resolveLocation(
   condition: Condition,
-  fields: Record<string, ExtractedField>,
+  fields: Record<string, ExtractedField>
 ): FieldLocation | undefined {
   const fieldId = getFieldId(condition);
   if (!fieldId) return undefined;
@@ -248,7 +268,7 @@ function resolveLocation(
  */
 export function evaluateRules(
   rules: AnomalyRule[],
-  fields: Record<string, ExtractedField>,
+  fields: Record<string, ExtractedField>
 ): AnomalyHit[] {
   const hits: AnomalyHit[] = [];
 

@@ -23,15 +23,15 @@ import {
 } from '../packages/hwpjs-adapter/src/table-schema';
 
 interface SchemaFile {
-  file: string;           // 원본 HWP 파일명
-  extractedAt: string;    // ISO timestamp
+  file: string; // 원본 HWP 파일명
+  extractedAt: string; // ISO timestamp
   schemas: TableSchema[]; // image src = 상대경로 "images/<prefix>-img-N.ext"
 }
 
 async function extractFromHwp(
   filePath: string,
-  prefix: string,        // 이미지 파일명 prefix (e.g. "001")
-  imageDir: string,      // 이미지를 저장할 절대 경로
+  prefix: string, // 이미지 파일명 prefix (e.g. "001")
+  imageDir: string // 이미지를 저장할 절대 경로
 ): Promise<TableSchema[]> {
   const data = fs.readFileSync(filePath);
   const uint8Data = new Uint8Array(data);
@@ -75,13 +75,13 @@ async function extractFromHwp(
   }
 
   // src 교체 (절대경로 → 상대경로)
-  return schemas.map(schema => ({
+  return schemas.map((schema) => ({
     ...schema,
-    rows: schema.rows.map(row => ({
+    rows: schema.rows.map((row) => ({
       ...row,
-      cells: row.cells.map(cell => ({
+      cells: row.cells.map((cell) => ({
         ...cell,
-        images: cell.images?.map(img => ({
+        images: cell.images?.map((img) => ({
           ...img,
           src: saved.get(img.id) ?? img.src,
         })),
@@ -105,10 +105,11 @@ async function main() {
   fs.mkdirSync(schemasDir, { recursive: true });
   fs.mkdirSync(imageDir, { recursive: true });
 
-  const hwpFiles = fs.readdirSync(hwpFolder)
-    .filter(f => f.toLowerCase().endsWith('.hwp'))
+  const hwpFiles = fs
+    .readdirSync(hwpFolder)
+    .filter((f) => f.toLowerCase().endsWith('.hwp'))
     .sort()
-    .map(f => ({ name: f, full: path.join(hwpFolder, f) }));
+    .map((f) => ({ name: f, full: path.join(hwpFolder, f) }));
 
   console.log(`Found ${hwpFiles.length} HWP files → ${outputDir}`);
 

@@ -4,14 +4,20 @@ import { evaluateRules } from '../src/anomaly/evaluator';
 import { cond, rule, field as fieldBuilder } from '../src/anomaly/builders';
 import { pattern } from '../src/collection/builders';
 import type { TableSchema } from '../src/table-schema';
-import type { ExtractedField, ExtractedTableRows, ExtractedCheckboxCluster, ExtractedNumberSet, ExtractedText } from '../src/anomaly/types';
+import type {
+  ExtractedField,
+  ExtractedTableRows,
+  ExtractedCheckboxCluster,
+  ExtractedNumberSet,
+  ExtractedText,
+} from '../src/anomaly/types';
 
 // ─── 테스트용 TableSchema 빌더 ────────────────────────────────────────────────
 
 function makeSchema(cells: Array<Array<string | null>>, caption?: string): TableSchema {
   return {
     caption,
-    rows: cells.map(row => ({ cells: row.map(v => ({ value: v })) })),
+    rows: cells.map((row) => ({ cells: row.map((v) => ({ value: v })) })),
   };
 }
 
@@ -57,9 +63,9 @@ describe('extractField — row_contains_label (text)', () => {
 describe('extractField — rows_after_header (table_rows)', () => {
   const table = makeSchema([
     ['회차', '주요내용', '시간'],
-    ['1',    '이론 설명', '2h'],
-    ['2',    '실습',     '3h'],
-    ['3',    '복습',     '1h'],
+    ['1', '이론 설명', '2h'],
+    ['2', '실습', '3h'],
+    ['3', '복습', '1h'],
   ]);
 
   it('헤더 이후 행 수집', () => {
@@ -91,16 +97,14 @@ describe('extractField — rows_after_header (table_rows)', () => {
 });
 
 describe('extractField — row_contains_label (checkbox_cluster)', () => {
-  const table = makeSchema([
-    ['수업방법', '☑이론 □실습 □현장실습'],
-  ]);
+  const table = makeSchema([['수업방법', '☑이론 □실습 □현장실습']]);
 
   it('체크된 항목 parsing', () => {
     const def = fieldBuilder.checkbox('method', '수업방법', ['이론', '실습', '현장실습']);
     const result = extractField(def, [table]) as ExtractedCheckboxCluster;
     expect(result.found).toBe(true);
-    const checked = result.options.filter(o => o.checked);
-    expect(checked.some(o => o.option === '이론')).toBe(true);
+    const checked = result.options.filter((o) => o.checked);
+    expect(checked.some((o) => o.option === '이론')).toBe(true);
   });
 
   it('format 필드 존재', () => {
@@ -114,9 +118,7 @@ describe('extractField — row_contains_label (checkbox_cluster)', () => {
 });
 
 describe('extractField — row_contains_label (number_set)', () => {
-  const table = makeSchema([
-    ['총 시간', '30 60 90'],
-  ]);
+  const table = makeSchema([['총 시간', '30 60 90']]);
 
   it('숫자 추출', () => {
     const def = fieldBuilder.numberSet('hours', '총 시간');
@@ -131,13 +133,13 @@ describe('extractField — row_contains_label (number_set)', () => {
 describe('extractAllFields', () => {
   const table = makeSchema([
     ['강사명', '김철수'],
-    ['소속',   '서울대'],
+    ['소속', '서울대'],
   ]);
 
   it('여러 필드를 id→ExtractedField 맵으로 반환', () => {
     const fields = [
       fieldBuilder.text('name', '강사명'),
-      fieldBuilder.text('org',  '소속'),
+      fieldBuilder.text('org', '소속'),
       fieldBuilder.text('phone', '연락처'),
     ];
     const result = extractAllFields(fields, [table]);
@@ -176,7 +178,11 @@ const foundNumbers = (values: number[]): ExtractedField => ({
 
 const foundCheckbox = (options: Array<{ option: string; checked: boolean }>): ExtractedField => ({
   found: true,
-  options: options.map(o => ({ ...o, recognized: true, format: o.checked ? 'checkmark' : 'unchecked' as any })),
+  options: options.map((o) => ({
+    ...o,
+    recognized: true,
+    format: o.checked ? 'checkmark' : ('unchecked' as any),
+  })),
   location: { table_index: 0 },
 });
 
@@ -243,9 +249,11 @@ describe('evaluateRules — value_match 조건', () => {
   });
 
   it('matches 정규식', () => {
-    const rules = [rule('R6', 'WARN', cond.valueMatch('email', 'matches', undefined, '@'), '이메일 형식')];
+    const rules = [
+      rule('R6', 'WARN', cond.valueMatch('email', 'matches', undefined, '@'), '이메일 형식'),
+    ];
     const hitYes = evaluateRules(rules, { email: foundText('test@test.com') });
-    const hitNo  = evaluateRules(rules, { email: foundText('invalid') });
+    const hitNo = evaluateRules(rules, { email: foundText('invalid') });
     expect(hitYes).toHaveLength(1);
     expect(hitNo).toHaveLength(0);
   });
@@ -287,19 +295,27 @@ describe('evaluateRules — array_match 조건', () => {
   };
 
   it('any — 체크된 항목 있음 → 트리거', () => {
-    const rules = [rule('R11', 'INFO',
-      cond.arrayMatch('method.options', 'any', { prop: 'checked', op: 'eq', value: true }),
-      '체크된 항목 존재',
-    )];
+    const rules = [
+      rule(
+        'R11',
+        'INFO',
+        cond.arrayMatch('method.options', 'any', { prop: 'checked', op: 'eq', value: true }),
+        '체크된 항목 존재'
+      ),
+    ];
     expect(evaluateRules(rules, cbFields)).toHaveLength(1);
   });
 
   it('all — 모두 체크 여부', () => {
     // 실습이 false이므로 all checked = false → 미트리거
-    const rules = [rule('R12', 'WARN',
-      cond.arrayMatch('method.options', 'all', { prop: 'checked', op: 'eq', value: true }),
-      '모두 체크됨',
-    )];
+    const rules = [
+      rule(
+        'R12',
+        'WARN',
+        cond.arrayMatch('method.options', 'all', { prop: 'checked', op: 'eq', value: true }),
+        '모두 체크됨'
+      ),
+    ];
     expect(evaluateRules(rules, cbFields)).toHaveLength(0);
   });
 
@@ -310,32 +326,39 @@ describe('evaluateRules — array_match 조건', () => {
         { option: '실습', checked: false },
       ]),
     };
-    const rules = [rule('R13', 'ERROR',
-      cond.arrayMatch('method.options', 'none', { prop: 'checked', op: 'eq', value: true }),
-      '아무것도 선택 안 됨',
-    )];
+    const rules = [
+      rule(
+        'R13',
+        'ERROR',
+        cond.arrayMatch('method.options', 'none', { prop: 'checked', op: 'eq', value: true }),
+        '아무것도 선택 안 됨'
+      ),
+    ];
     expect(evaluateRules(rules, allUnchecked)).toHaveLength(1);
   });
 });
 
 describe('evaluateRules — and / or 조건', () => {
   it('and — 모두 트리거 시만 hit', () => {
-    const rules = [rule('R14', 'ERROR',
-      cond.and(cond.exists('a', true), cond.exists('b', true)),
-      'a,b 모두 없음',
-    )];
+    const rules = [
+      rule(
+        'R14',
+        'ERROR',
+        cond.and(cond.exists('a', true), cond.exists('b', true)),
+        'a,b 모두 없음'
+      ),
+    ];
     const hitBoth = evaluateRules(rules, { a: notFound, b: notFound });
-    const hitOne  = evaluateRules(rules, { a: foundText('x'), b: notFound });
+    const hitOne = evaluateRules(rules, { a: foundText('x'), b: notFound });
     expect(hitBoth).toHaveLength(1);
     expect(hitOne).toHaveLength(0);
   });
 
   it('or — 하나라도 트리거 시 hit', () => {
-    const rules = [rule('R15', 'WARN',
-      cond.or(cond.exists('a', true), cond.exists('b', true)),
-      'a 또는 b 없음',
-    )];
-    const hitOne  = evaluateRules(rules, { a: notFound, b: foundText('x') });
+    const rules = [
+      rule('R15', 'WARN', cond.or(cond.exists('a', true), cond.exists('b', true)), 'a 또는 b 없음'),
+    ];
+    const hitOne = evaluateRules(rules, { a: notFound, b: foundText('x') });
     const hitNone = evaluateRules(rules, { a: foundText('x'), b: foundText('y') });
     expect(hitOne).toHaveLength(1);
     expect(hitNone).toHaveLength(0);
@@ -372,7 +395,11 @@ describe('evaluateRules — severity / hit 구조', () => {
 describe('빌더 — pattern (collect_pattern)', () => {
   it('pattern.header() 올바른 구조 생성', () => {
     expect(pattern.header('주요내용')).toEqual({ type: 'header_contains', text: '주요내용' });
-    expect(pattern.header('주요내용', 0)).toEqual({ type: 'header_contains', text: '주요내용', row: 0 });
+    expect(pattern.header('주요내용', 0)).toEqual({
+      type: 'header_contains',
+      text: '주요내용',
+      row: 0,
+    });
   });
 
   it('pattern.size() 올바른 구조 생성', () => {
@@ -380,10 +407,7 @@ describe('빌더 — pattern (collect_pattern)', () => {
   });
 
   it('pattern.and() 중첩 가능', () => {
-    const p = pattern.and(
-      pattern.header('주요내용'),
-      pattern.size({ min_rows: 10 }),
-    );
+    const p = pattern.and(pattern.header('주요내용'), pattern.size({ min_rows: 10 }));
     expect(p.type).toBe('and');
     expect(p.patterns).toHaveLength(2);
   });

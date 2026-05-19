@@ -222,4 +222,10 @@ export const ktechTableSpecs: Spec[] = [
   expertCriteriaSpec,
 ];
 
-export { courseInfoSpec, weeklyPlanSpec, weeklyPlanKorSpec, instructorInfoSpec, expertCriteriaSpec };
+export {
+  courseInfoSpec,
+  weeklyPlanSpec,
+  weeklyPlanKorSpec,
+  instructorInfoSpec,
+  expertCriteriaSpec,
+};

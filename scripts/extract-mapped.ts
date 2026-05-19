@@ -4,8 +4,8 @@ import type { ImageMap } from '../packages/hwpjs-adapter/src/table-schema.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const hwpDir  = 'D:/woo-work/hwp-pipe';
-const outDir  = 'D:/woo-work/hwp-pipe-output/mapped';
+const hwpDir = 'D:/woo-work/hwp-pipe';
+const outDir = 'D:/woo-work/hwp-pipe-output/mapped';
 const csvPath = 'D:/woo-work/hwp-pipe-output/cdms-hwp-mapping.csv';
 
 fs.mkdirSync(outDir, { recursive: true });
@@ -23,27 +23,31 @@ function buildImageMap(html: string): ImageMap {
 // CSV 파싱: 쉼표 포함 필드 대응
 function parseCsvLine(line: string): string[] {
   const fields: string[] = [];
-  let cur = '', inQuote = false;
+  let cur = '',
+    inQuote = false;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
-    if (c === '"') { inQuote = !inQuote; }
-    else if (c === ',' && !inQuote) { fields.push(cur); cur = ''; }
-    else cur += c;
+    if (c === '"') {
+      inQuote = !inQuote;
+    } else if (c === ',' && !inQuote) {
+      fields.push(cur);
+      cur = '';
+    } else cur += c;
   }
   fields.push(cur);
-  return fields.map(f => f.trim().replace(/^"|"$/g, ''));
+  return fields.map((f) => f.trim().replace(/^"|"$/g, ''));
 }
 
-const csvLines = fs.readFileSync(csvPath, 'utf-8')
-  .split('\n').slice(1).filter(Boolean);
+const csvLines = fs.readFileSync(csvPath, 'utf-8').split('\n').slice(1).filter(Boolean);
 
-let ok = 0, fail = 0;
+let ok = 0,
+  fail = 0;
 const index: object[] = [];
 
 for (const line of csvLines) {
   const cols = parseCsvLine(line);
-  const cdms  = cols[0];
-  const file  = cols[1];
+  const cdms = cols[0];
+  const file = cols[1];
   const title = cols[2] ?? '';
   const hwpPath = path.join(hwpDir, file);
 
@@ -65,7 +69,7 @@ for (const line of csvLines) {
       apis: ['content', 'style'],
       imageMap,
       sourcePaths: {
-        hwp:  hwpPath.replace(/\\/g, '/'),
+        hwp: hwpPath.replace(/\\/g, '/'),
         json: jsonOut.replace(/\\/g, '/'),
       },
     });
@@ -73,13 +77,10 @@ for (const line of csvLines) {
     (result.meta as any).cdms_code = cdms;
     (result.meta as any).title = title;
 
-    fs.writeFileSync(
-      path.join(outDir, `${cdms}.extract.json`),
-      JSON.stringify(result, null, 2),
-    );
+    fs.writeFileSync(path.join(outDir, `${cdms}.extract.json`), JSON.stringify(result, null, 2));
 
-    const tables = result.records.filter(r => r.kind === 'table').length;
-    const texts  = result.records.filter(r => r.kind === 'text').length;
+    const tables = result.records.filter((r) => r.kind === 'table').length;
+    const texts = result.records.filter((r) => r.kind === 'text').length;
     console.log(`✓  text:${texts} table:${tables}`);
 
     index.push({ cdms_code: cdms, file, title, records: result.records.length, tables, texts });
@@ -93,7 +94,11 @@ for (const line of csvLines) {
 
 fs.writeFileSync(
   path.join(outDir, 'index.json'),
-  JSON.stringify({ generated_at: new Date().toISOString(), total: ok + fail, ok, fail, files: index }, null, 2),
+  JSON.stringify(
+    { generated_at: new Date().toISOString(), total: ok + fail, ok, fail, files: index },
+    null,
+    2
+  )
 );
 
 console.log(`\n✅ ${ok}개 성공 / ${fail}개 실패`);

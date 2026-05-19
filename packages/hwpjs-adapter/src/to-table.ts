@@ -12,11 +12,7 @@
  */
 
 import type { Table, Cell, Row } from '../../table-manager/src/schema.js';
-import type {
-  TableSchema,
-  TableSchemaCell,
-  TableSchemaRow,
-} from './table-schema.js';
+import type { TableSchema, TableSchemaCell, TableSchemaRow } from './table-schema.js';
 
 // ============================================================================
 // TableSchema → Table
@@ -25,10 +21,10 @@ import type {
 function toCell(cell: TableSchemaCell): Cell {
   const result: Cell = { value: cell.value };
 
-  if (cell.style)     result.style      = cell.style;
-  if (cell.className) result.className  = cell.className;
-  if (cell.id)        result.id         = cell.id;
-  if (cell.isHeader)  result.isHeader   = cell.isHeader;
+  if (cell.style) result.style = cell.style;
+  if (cell.className) result.className = cell.className;
+  if (cell.id) result.id = cell.id;
+  if (cell.isHeader) result.isHeader = cell.isHeader;
 
   // images → attributes.__hwp_images (직렬화)
   const attrs: Record<string, string> = cell.attributes ? { ...cell.attributes } : {};
@@ -42,9 +38,9 @@ function toCell(cell: TableSchemaCell): Cell {
 
 function toRow(row: TableSchemaRow): Row {
   const result: Row = { cells: row.cells.map(toCell) };
-  if (row.style)     result.style     = row.style;
+  if (row.style) result.style = row.style;
   if (row.className) result.className = row.className;
-  if (row.id)        result.id        = row.id;
+  if (row.id) result.id = row.id;
   return result;
 }
 
@@ -53,11 +49,11 @@ function toRow(row: TableSchemaRow): Row {
  */
 export function tableSchemaToTable(schema: TableSchema): Table {
   const result: Table = { rows: schema.rows.map(toRow) };
-  if (schema.merges && schema.merges.length > 0) result.merges    = schema.merges;
-  if (schema.style)                               result.style     = schema.style;
-  if (schema.className)                           result.className = schema.className;
-  if (schema.id)                                  result.id        = schema.id;
-  if (schema.caption)                             result.caption   = schema.caption;
+  if (schema.merges && schema.merges.length > 0) result.merges = schema.merges;
+  if (schema.style) result.style = schema.style;
+  if (schema.className) result.className = schema.className;
+  if (schema.id) result.id = schema.id;
+  if (schema.caption) result.caption = schema.caption;
   return result;
 }
 
@@ -66,18 +62,24 @@ export function tableSchemaToTable(schema: TableSchema): Table {
 // ============================================================================
 
 function fromCell(cell: Cell): TableSchemaCell {
-  const result: TableSchemaCell = { value: cell.value instanceof Date ? cell.value.toISOString() : cell.value };
+  const result: TableSchemaCell = {
+    value: cell.value instanceof Date ? cell.value.toISOString() : cell.value,
+  };
 
-  if (cell.style)     result.style     = cell.style;
+  if (cell.style) result.style = cell.style;
   if (cell.className) result.className = cell.className;
-  if (cell.id)        result.id        = cell.id;
-  if (cell.isHeader)  result.isHeader  = cell.isHeader;
+  if (cell.id) result.id = cell.id;
+  if (cell.isHeader) result.isHeader = cell.isHeader;
 
   // attributes.__hwp_images → images 복원
   if (cell.attributes) {
     const { __hwp_images, ...rest } = cell.attributes;
     if (__hwp_images) {
-      try { result.images = JSON.parse(__hwp_images); } catch { /* ignore */ }
+      try {
+        result.images = JSON.parse(__hwp_images);
+      } catch {
+        /* ignore */
+      }
     }
     if (Object.keys(rest).length > 0) result.attributes = rest;
   }
@@ -87,9 +89,9 @@ function fromCell(cell: Cell): TableSchemaCell {
 
 function fromRow(row: Row): TableSchemaRow {
   const result: TableSchemaRow = { cells: row.cells.map(fromCell) };
-  if (row.style)     result.style     = row.style;
+  if (row.style) result.style = row.style;
   if (row.className) result.className = row.className;
-  if (row.id)        result.id        = row.id;
+  if (row.id) result.id = row.id;
   return result;
 }
 
@@ -98,11 +100,11 @@ function fromRow(row: Row): TableSchemaRow {
  */
 export function tableToTableSchema(table: Table): TableSchema {
   const result: TableSchema = { rows: table.rows.map(fromRow) };
-  if (table.merges && table.merges.length > 0) result.merges    = table.merges;
-  if (table.style)                              result.style     = table.style;
-  if (table.className)                          result.className = table.className;
-  if (table.id)                                 result.id        = table.id;
-  if (table.caption)                            result.caption   = table.caption;
+  if (table.merges && table.merges.length > 0) result.merges = table.merges;
+  if (table.style) result.style = table.style;
+  if (table.className) result.className = table.className;
+  if (table.id) result.id = table.id;
+  if (table.caption) result.caption = table.caption;
   return result;
 }
 

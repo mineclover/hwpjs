@@ -58,11 +58,7 @@ export const cond = {
   },
 
   /** 배열 항목 매칭 조건 */
-  arrayMatch(
-    field: string,
-    quantifier: Quantifier,
-    where: WhereClause,
-  ): ArrayMatchCondition {
+  arrayMatch(field: string, quantifier: Quantifier, where: WhereClause): ArrayMatchCondition {
     return { type: 'array_match', field, quantifier, where };
   },
 
@@ -71,7 +67,7 @@ export const cond = {
     field: string,
     op: CompareOp,
     value?: unknown,
-    patternStr?: string,
+    patternStr?: string
   ): ValueMatchCondition {
     return { type: 'value_match', field, op, value, pattern: patternStr };
   },
@@ -101,7 +97,7 @@ export function rule(
   rule_id: string,
   severity: Severity,
   condition: Condition,
-  message: string,
+  message: string
 ): AnomalyRule {
   return { rule_id, severity, condition, message };
 }
@@ -126,7 +122,7 @@ function makeFieldDef(
   id: string,
   type: FieldType,
   strategy: ExtractorStrategy,
-  opts: FieldDefOptions = {},
+  opts: FieldDefOptions = {}
 ): FieldDef {
   const {
     label = id,
@@ -143,17 +139,17 @@ function makeFieldDef(
   } = opts;
 
   const extractor: FieldDef['extractor'] = { strategy };
-  if (anchor)             extractor.anchor = anchor;
-  if (anchors)            extractor.anchors = anchors;
-  if (anchors_config)     extractor.anchors_config = anchors_config;
-  if (min_rows)           extractor.min_rows = min_rows;
+  if (anchor) extractor.anchor = anchor;
+  if (anchors) extractor.anchors = anchors;
+  if (anchors_config) extractor.anchors_config = anchors_config;
+  if (min_rows) extractor.min_rows = min_rows;
   if (item_header_pattern) extractor.item_header_pattern = item_header_pattern;
-  if (pattern)            extractor.pattern = pattern;
+  if (pattern) extractor.pattern = pattern;
   if (table_index !== undefined) extractor.table_index = table_index;
 
   const def: FieldDef = { id, label, type, extractor };
   if (required !== undefined) def.required = required;
-  if (options)    def.options = options;
+  if (options) def.options = options;
   if (min_count !== undefined) def.min_count = min_count;
   return def;
 }

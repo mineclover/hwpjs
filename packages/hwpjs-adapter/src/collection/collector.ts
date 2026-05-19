@@ -30,13 +30,8 @@ interface MatchResult {
   info?: MatchInfo;
 }
 
-function matchHeaderContains(
-  schema: TableSchema,
-  pattern: HeaderContainsPattern,
-): MatchResult {
-  const rows = pattern.row !== undefined
-    ? [schema.rows[pattern.row]].filter(Boolean)
-    : schema.rows;
+function matchHeaderContains(schema: TableSchema, pattern: HeaderContainsPattern): MatchResult {
+  const rows = pattern.row !== undefined ? [schema.rows[pattern.row]].filter(Boolean) : schema.rows;
 
   for (let ri = 0; ri < rows.length; ri++) {
     const actualRow = pattern.row !== undefined ? pattern.row : ri;
@@ -58,10 +53,7 @@ function matchHeaderContains(
   return { matched: false };
 }
 
-function matchCaptionContains(
-  schema: TableSchema,
-  pattern: CaptionContainsPattern,
-): MatchResult {
+function matchCaptionContains(schema: TableSchema, pattern: CaptionContainsPattern): MatchResult {
   const caption = schema.caption ?? '';
   if (caption.includes(pattern.text)) {
     return {
@@ -72,10 +64,7 @@ function matchCaptionContains(
   return { matched: false };
 }
 
-function matchCellMatches(
-  schema: TableSchema,
-  pattern: CellMatchesPattern,
-): MatchResult {
+function matchCellMatches(schema: TableSchema, pattern: CellMatchesPattern): MatchResult {
   const row = schema.rows[pattern.row];
   if (!row) return { matched: false };
   const cell = row.cells[pattern.col];
@@ -109,9 +98,7 @@ function matchSize(schema: TableSchema, pattern: SizePattern): MatchResult {
     (pattern.max_rows === undefined || rows <= pattern.max_rows) &&
     (pattern.min_cols === undefined || cols >= pattern.min_cols) &&
     (pattern.max_cols === undefined || cols <= pattern.max_cols);
-  return ok
-    ? { matched: true, info: { pattern_type: 'size' } }
-    : { matched: false };
+  return ok ? { matched: true, info: { pattern_type: 'size' } } : { matched: false };
 }
 
 function matchPattern(schema: TableSchema, pattern: CollectPattern): MatchResult {
@@ -168,7 +155,7 @@ export interface CollectOptions {
 export function collectTables(
   schemas: TableSchema[],
   types: TableTypeDef[],
-  options: CollectOptions = {},
+  options: CollectOptions = {}
 ): CollectedTable[] {
   const { allow_multi_match = false } = options;
   const results: CollectedTable[] = [];
@@ -227,7 +214,7 @@ export function collectTables(
 export function collectWithSpecs<P = unknown>(
   schemas: TableSchema[],
   specs: TableTypeSpec<P>[],
-  options: CollectOptions = {},
+  options: CollectOptions = {}
 ): CollectedTable<P>[] {
   const { allow_multi_match = false } = options;
   const results: CollectedTable<P>[] = [];
@@ -287,7 +274,7 @@ export function collectWithSpecs<P = unknown>(
 export function collectTablesFromHwp<P = unknown>(
   hwpJson: unknown,
   specs: TableTypeSpec<P>[],
-  options: CollectOptions = {},
+  options: CollectOptions = {}
 ): CollectedTable<P>[] {
   const body = (hwpJson as any)?.body_text;
   if (!body) return [];

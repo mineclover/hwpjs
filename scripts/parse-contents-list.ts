@@ -74,7 +74,15 @@ for (const [key, arr] of Object.entries(raw)) {
     });
   }
 
-  courses.push({ index: idx, title, type, field, number, chapter_count: chapters.length, chapters });
+  courses.push({
+    index: idx,
+    title,
+    type,
+    field,
+    number,
+    chapter_count: chapters.length,
+    chapters,
+  });
 }
 
 courses.sort((a, b) => a.index - b.index);

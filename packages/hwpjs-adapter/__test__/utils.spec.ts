@@ -6,11 +6,7 @@ import {
   collectRawTables,
   collectBinIds,
 } from '../src/utils/traverse';
-import {
-  buildImageMapFromHtml,
-  mergeImageMaps,
-  emptyImageMap,
-} from '../src/utils/image-map';
+import { buildImageMapFromHtml, mergeImageMaps, emptyImageMap } from '../src/utils/image-map';
 
 // ─── normalize ───────────────────────────────────────────────────────────────
 
@@ -31,8 +27,8 @@ describe('normalizeText', () => {
 
   it('제어 문자 제거 (\\x00–\\x09, \\x0B–\\x1F)', () => {
     expect(normalizeText('a\x00b\x01c')).toBe('abc');
-    expect(normalizeText('a\x09b')).toBe('ab');   // tab
-    expect(normalizeText('a\x0Bb')).toBe('ab');   // vertical tab
+    expect(normalizeText('a\x09b')).toBe('ab'); // tab
+    expect(normalizeText('a\x0Bb')).toBe('ab'); // vertical tab
   });
 
   it('\\n(0x0A)은 기본적으로 보존', () => {
@@ -134,7 +130,8 @@ describe('collectRawTables', () => {
   });
 
   it('배열 안 탐색', () => {
-    const t1 = { cells: [] }, t2 = { cells: [] };
+    const t1 = { cells: [] },
+      t2 = { cells: [] };
     const obj = [{ table: t1 }, { table: t2 }];
     const result = collectRawTables(obj);
     expect(result).toHaveLength(2);
@@ -185,7 +182,7 @@ describe('collectBinIds', () => {
 
 describe('buildImageMapFromHtml', () => {
   const fakeJpeg = 'data:image/jpeg;base64,/9j/4AAQ';
-  const fakePng  = 'data:image/png;base64,iVBORw0KGgo';
+  const fakePng = 'data:image/png;base64,iVBORw0KGgo';
 
   it('data URL 1개 → Map(1, id=1)', () => {
     const map = buildImageMapFromHtml(`<img src="${fakeJpeg}">`);

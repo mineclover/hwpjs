@@ -117,13 +117,12 @@ async function handleRequest(req: Request): Promise<Response> {
             success: true,
             data: {
               markdown: result.markdown,
-              images: result.images.map(img => ({
+              images: result.images.map((img) => ({
                 id: img.id,
                 format: img.format,
                 size: img.data.length,
-                data: imageFormat === 'base64'
-                  ? undefined
-                  : Buffer.from(img.data).toString('base64'),
+                data:
+                  imageFormat === 'base64' ? undefined : Buffer.from(img.data).toString('base64'),
               })),
             },
           });

@@ -3,10 +3,7 @@
  */
 import { describe, it, expect } from 'bun:test';
 import { toJson } from '@ohah/hwpjs';
-import {
-  transformHwpTablesWithSchema,
-  extractAllTableSchemas,
-} from '../src/table-schema';
+import { transformHwpTablesWithSchema, extractAllTableSchemas } from '../src/table-schema';
 import { tableSchemaToTable, tableSchemasToTables } from '../src/to-table';
 import { tableToHtml } from '../../table-manager/src/html/html-converter';
 import * as fs from 'fs';
@@ -56,7 +53,7 @@ describe('HWP → TableSchema → Table → HTML pipeline', () => {
     it('should preserve merge info through the pipeline', () => {
       const schemas = loadHwp('table.hwp');
       // find a schema that has merges
-      const schemaWithMerge = schemas.find(s => s.merges && s.merges.length > 0);
+      const schemaWithMerge = schemas.find((s) => s.merges && s.merges.length > 0);
       if (!schemaWithMerge) {
         console.log('No merged cells in table.hwp, skipping merge check');
         return;
@@ -75,7 +72,7 @@ describe('HWP → TableSchema → Table → HTML pipeline', () => {
     it('should convert all tables from file to HTML', () => {
       const schemas = loadHwp('table.hwp');
       const tables = tableSchemasToTables(schemas);
-      const htmlList = tables.map(t => tableToHtml(t, { pretty: false }));
+      const htmlList = tables.map((t) => tableToHtml(t, { pretty: false }));
 
       expect(htmlList.length).toBe(schemas.length);
       for (const html of htmlList) {

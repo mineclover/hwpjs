@@ -25,14 +25,14 @@ export interface NcsUnit {
 }
 
 export interface NcsClassification {
-  major:  { code: string; name: string };
+  major: { code: string; name: string };
   middle: { code: string; name: string };
-  minor:  { code: string; name: string };
+  minor: { code: string; name: string };
   detail: { code: string; name: string };
 }
 
 export interface CheckboxPattern {
-  pattern: string;  // e.g. "이론", "이론,실습"
+  pattern: string; // e.g. "이론", "이론,실습"
   count: number;
 }
 
@@ -80,13 +80,10 @@ export interface CourseInfo {
  * const courses = loadCourseInfoJson('pipeline/html/competency-units.json', [36, 74]);
  * ```
  */
-export function loadCourseInfoJson(
-  jsonPath: string,
-  fileNumbers?: number[],
-): CourseInfo[] {
+export function loadCourseInfoJson(jsonPath: string, fileNumbers?: number[]): CourseInfo[] {
   const raw: CourseInfo[] = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
   if (!fileNumbers || fileNumbers.length === 0) return raw;
-  return raw.filter(c => c.fileNumber !== null && fileNumbers.includes(c.fileNumber));
+  return raw.filter((c) => c.fileNumber !== null && fileNumbers.includes(c.fileNumber));
 }
 
 // ============================================================================
@@ -125,7 +122,7 @@ function isCompetencyCode(value: string): boolean {
  */
 export function extractCourseInfo(
   schema: TableSchema,
-  fileName = '',
+  fileName = ''
 ): Omit<CourseInfo, 'publicContentEval' | 'category' | 'cdmsCode' | 'checkboxCounts'> & {
   publicContentEval: '';
   category: '';
@@ -136,14 +133,14 @@ export function extractCourseInfo(
 
   const result: CourseInfo = {
     fileName,
-    fileNumber: fileName ? (parseInt(fileName.match(/^(\d+)/)?.[1] ?? '', 10) || null) : null,
+    fileNumber: fileName ? parseInt(fileName.match(/^(\d+)/)?.[1] ?? '', 10) || null : null,
     courseName: '',
     courseNameEn: '',
     ncsApplied: false,
     classification: {
-      major:  { code: '', name: '' },
+      major: { code: '', name: '' },
       middle: { code: '', name: '' },
-      minor:  { code: '', name: '' },
+      minor: { code: '', name: '' },
       detail: { code: '', name: '' },
     },
     competencyUnits: [],
@@ -155,7 +152,10 @@ export function extractCourseInfo(
   };
 
   const labelMap: Record<string, keyof NcsClassification> = {
-    '대분류': 'major', '중분류': 'middle', '소분류': 'minor', '세분류': 'detail',
+    대분류: 'major',
+    중분류: 'middle',
+    소분류: 'minor',
+    세분류: 'detail',
   };
 
   for (let i = 0; i < rows.length; i++) {

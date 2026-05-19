@@ -18,7 +18,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { TableSchema } from '../packages/hwpjs-adapter/src/table-schema';
-import type { DocumentSchema, ExtractionRecord, AnomalyHit, Severity } from '../packages/hwpjs-adapter/src/anomaly/types';
+import type {
+  DocumentSchema,
+  ExtractionRecord,
+  AnomalyHit,
+  Severity,
+} from '../packages/hwpjs-adapter/src/anomaly/types';
 import { extractAllFields } from '../packages/hwpjs-adapter/src/anomaly/extractor';
 import { evaluateRules } from '../packages/hwpjs-adapter/src/anomaly/evaluator';
 
@@ -57,16 +62,16 @@ const SEVERITY_ORDER: Severity[] = ['CRITICAL', 'ERROR', 'WARN', 'INFO'];
 
 const SEVERITY_COLOR: Record<Severity, string> = {
   CRITICAL: '#721c24',
-  ERROR:    '#856404',
-  WARN:     '#856404',
-  INFO:     '#0c5460',
+  ERROR: '#856404',
+  WARN: '#856404',
+  INFO: '#0c5460',
 };
 
 const SEVERITY_BG: Record<Severity, string> = {
   CRITICAL: '#f8d7da',
-  ERROR:    '#fff3cd',
-  WARN:     '#fff8e1',
-  INFO:     '#d1ecf1',
+  ERROR: '#fff3cd',
+  WARN: '#fff8e1',
+  INFO: '#d1ecf1',
 };
 
 function severityBadge(s: Severity): string {
@@ -87,11 +92,11 @@ function renderHitRow(hit: AnomalyHit): string {
 
 function buildReport(records: ExtractionRecord[], docSchema: DocumentSchema): string {
   const totalFiles = records.length;
-  const allHits = records.flatMap(r => r.anomalies);
+  const allHits = records.flatMap((r) => r.anomalies);
 
   // severity 별 집계
   const bySeverity = Object.fromEntries(
-    SEVERITY_ORDER.map(s => [s, allHits.filter(h => h.severity === s).length])
+    SEVERITY_ORDER.map((s) => [s, allHits.filter((h) => h.severity === s).length])
   ) as Record<Severity, number>;
 
   // rule_id 별 집계 (상위 10)
@@ -102,9 +107,9 @@ function buildReport(records: ExtractionRecord[], docSchema: DocumentSchema): st
     .slice(0, 10);
 
   // 이상이 있는 파일 수
-  const filesWithAnomaly = records.filter(r => r.anomalies.length > 0).length;
+  const filesWithAnomaly = records.filter((r) => r.anomalies.length > 0).length;
 
-  const summaryCards = SEVERITY_ORDER.map(s => {
+  const summaryCards = SEVERITY_ORDER.map((s) => {
     const cnt = bySeverity[s];
     if (!cnt) return '';
     return `<div style="background:${SEVERITY_BG[s]};color:${SEVERITY_COLOR[s]};padding:10px 18px;border-radius:6px;text-align:center">
@@ -113,22 +118,29 @@ function buildReport(records: ExtractionRecord[], docSchema: DocumentSchema): st
     </div>`;
   }).join('');
 
-  const topRuleRows = topRules.map(([rid, cnt]) =>
-    `<tr><td style="font-family:monospace;font-size:12px">${rid}</td><td style="text-align:right">${cnt}</td></tr>`
-  ).join('');
+  const topRuleRows = topRules
+    .map(
+      ([rid, cnt]) =>
+        `<tr><td style="font-family:monospace;font-size:12px">${rid}</td><td style="text-align:right">${cnt}</td></tr>`
+    )
+    .join('');
 
-  const fileRows = records.map(r => {
-    const byS = Object.fromEntries(
-      SEVERITY_ORDER.map(s => [s, r.anomalies.filter(h => h.severity === s).length])
-    ) as Record<Severity, number>;
+  const fileRows = records
+    .map((r) => {
+      const byS = Object.fromEntries(
+        SEVERITY_ORDER.map((s) => [s, r.anomalies.filter((h) => h.severity === s).length])
+      ) as Record<Severity, number>;
 
-    const badges = SEVERITY_ORDER
-      .filter(s => byS[s] > 0)
-      .map(s => `<span style="background:${SEVERITY_BG[s]};color:${SEVERITY_COLOR[s]};padding:1px 5px;border-radius:3px;font-size:11px">${byS[s]} ${s}</span>`)
-      .join(' ');
+      const badges = SEVERITY_ORDER.filter((s) => byS[s] > 0)
+        .map(
+          (s) =>
+            `<span style="background:${SEVERITY_BG[s]};color:${SEVERITY_COLOR[s]};padding:1px 5px;border-radius:3px;font-size:11px">${byS[s]} ${s}</span>`
+        )
+        .join(' ');
 
-    const hitDetails = r.anomalies.length > 0
-      ? `<table style="width:100%;margin-top:6px;border-collapse:collapse">
+      const hitDetails =
+        r.anomalies.length > 0
+          ? `<table style="width:100%;margin-top:6px;border-collapse:collapse">
            <thead><tr style="background:#f1f3f5">
              <th style="padding:4px 8px;text-align:left;font-size:11px;width:80px">Severity</th>
              <th style="padding:4px 8px;text-align:left;font-size:11px;width:220px">Rule ID</th>
@@ -137,19 +149,23 @@ function buildReport(records: ExtractionRecord[], docSchema: DocumentSchema): st
            </tr></thead>
            <tbody>${r.anomalies.map(renderHitRow).join('')}</tbody>
          </table>`
-      : '<div style="color:#aaa;font-size:12px;margin-top:4px">이상 없음</div>';
+          : '<div style="color:#aaa;font-size:12px;margin-top:4px">이상 없음</div>';
 
-    const rowBg = r.anomalies.some(h => h.severity === 'CRITICAL' || h.severity === 'ERROR')
-      ? '#fff8f8' : r.anomalies.length > 0 ? '#fffdf0' : '#f8fff8';
+      const rowBg = r.anomalies.some((h) => h.severity === 'CRITICAL' || h.severity === 'ERROR')
+        ? '#fff8f8'
+        : r.anomalies.length > 0
+          ? '#fffdf0'
+          : '#f8fff8';
 
-    return `<details style="margin-bottom:6px;border:1px solid #dee2e6;border-radius:6px;background:${rowBg}">
+      return `<details style="margin-bottom:6px;border:1px solid #dee2e6;border-radius:6px;background:${rowBg}">
       <summary style="padding:8px 14px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
         <span style="font-weight:bold;font-size:13px">${r.source_file}</span>
         <span style="display:flex;gap:4px;align-items:center">${badges || '<span style="color:#aaa;font-size:12px">✓ 정상</span>'}</span>
       </summary>
       <div style="padding:6px 14px 12px">${hitDetails}</div>
     </details>`;
-  }).join('');
+    })
+    .join('');
 
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -192,14 +208,18 @@ function buildReport(records: ExtractionRecord[], docSchema: DocumentSchema): st
   ${summaryCards}
 </div>
 
-${topRules.length > 0 ? `
+${
+  topRules.length > 0
+    ? `
 <section>
   <h2>자주 발생한 규칙 TOP ${topRules.length}</h2>
   <table class="top-rules">
     <thead><tr style="background:#495057;color:#fff"><th style="padding:6px 10px;text-align:left">Rule ID</th><th style="padding:6px 10px;text-align:right;width:60px">건수</th></tr></thead>
     <tbody>${topRuleRows}</tbody>
   </table>
-</section>` : ''}
+</section>`
+    : ''
+}
 
 <section>
   <h2>파일별 결과</h2>
@@ -216,13 +236,15 @@ ${topRules.length > 0 ? `
 async function main() {
   const args = process.argv.slice(2);
   if (args.length < 2) {
-    console.error('Usage: bun scripts/detect-anomalies.ts <schemas-dir> <schema-json> [output-dir]');
+    console.error(
+      'Usage: bun scripts/detect-anomalies.ts <schemas-dir> <schema-json> [output-dir]'
+    );
     process.exit(1);
   }
 
-  const schemasDir   = args[0];
-  const schemaFile   = args[1];
-  const outputDir    = args[2] || path.join(schemasDir, '..', 'anomalies');
+  const schemasDir = args[0];
+  const schemaFile = args[1];
+  const outputDir = args[2] || path.join(schemasDir, '..', 'anomalies');
 
   fs.mkdirSync(outputDir, { recursive: true });
 
@@ -232,10 +254,11 @@ async function main() {
   console.log(`Rules:  ${docSchema.anomaly_rules.length}개`);
 
   // Stage 1 JSON 파일 목록
-  const jsonFiles = fs.readdirSync(schemasDir)
-    .filter(f => f.endsWith('.json'))
+  const jsonFiles = fs
+    .readdirSync(schemasDir)
+    .filter((f) => f.endsWith('.json'))
     .sort()
-    .map(f => path.join(schemasDir, f));
+    .map((f) => path.join(schemasDir, f));
 
   console.log(`Files:  ${jsonFiles.length}개 → ${outputDir}\n`);
 
@@ -247,12 +270,12 @@ async function main() {
     records.push(record);
 
     const counts = Object.fromEntries(
-      SEVERITY_ORDER.map(s => [s, record.anomalies.filter(h => h.severity === s).length])
+      SEVERITY_ORDER.map((s) => [s, record.anomalies.filter((h) => h.severity === s).length])
     );
-    const summary = SEVERITY_ORDER
-      .filter(s => counts[s] > 0)
-      .map(s => `${counts[s]} ${s}`)
-      .join(', ') || '정상';
+    const summary =
+      SEVERITY_ORDER.filter((s) => counts[s] > 0)
+        .map((s) => `${counts[s]} ${s}`)
+        .join(', ') || '정상';
 
     console.log(`  ${stageOne.file}: ${summary}`);
   }
@@ -264,8 +287,8 @@ async function main() {
   fs.writeFileSync(outJson, JSON.stringify(records, null, 2), 'utf-8');
   fs.writeFileSync(outHtml, buildReport(records, docSchema), 'utf-8');
 
-  const totalHits = records.flatMap(r => r.anomalies).length;
-  const filesWithAnomaly = records.filter(r => r.anomalies.length > 0).length;
+  const totalHits = records.flatMap((r) => r.anomalies).length;
+  const filesWithAnomaly = records.filter((r) => r.anomalies.length > 0).length;
 
   console.log(`\nDone!`);
   console.log(`  JSON:   ${outJson}`);

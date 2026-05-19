@@ -27,74 +27,91 @@ describe('extractContent', () => {
   it('텍스트 단락 → text 레코드 추출', () => {
     const hwpJson = {
       body_text: {
-        sections: [{
-          paragraphs: [{
-            para_header: {},
-            records: [
+        sections: [
+          {
+            paragraphs: [
               {
-                type: 'para_text',
-                runs: [{ kind: 'text', text: '안녕하세요' }],
+                para_header: {},
+                records: [
+                  {
+                    type: 'para_text',
+                    runs: [{ kind: 'text', text: '안녕하세요' }],
+                  },
+                ],
               },
             ],
-          }],
-        }],
+          },
+        ],
       },
     };
     const records = extractContent(hwpJson, hwpJson.body_text, new Map());
-    expect(records.some(r => r.kind === 'text' && r.content === '안녕하세요')).toBe(true);
+    expect(records.some((r) => r.kind === 'text' && r.content === '안녕하세요')).toBe(true);
   });
 
   it('텍스트 레코드에 JSON path 포함', () => {
     const hwpJson = {
       body_text: {
-        sections: [{
-          paragraphs: [{
-            para_header: {},
-            records: [{ type: 'para_text', runs: [{ kind: 'text', text: '테스트' }] }],
-          }],
-        }],
+        sections: [
+          {
+            paragraphs: [
+              {
+                para_header: {},
+                records: [{ type: 'para_text', runs: [{ kind: 'text', text: '테스트' }] }],
+              },
+            ],
+          },
+        ],
       },
     };
     const records = extractContent(hwpJson, hwpJson.body_text, new Map());
-    const textRec = records.find(r => r.kind === 'text');
+    const textRec = records.find((r) => r.kind === 'text');
     expect(textRec?.path).toBe('body_text.sections[0].paragraphs[0]');
   });
 
   it('제어 문자가 포함된 텍스트 정규화', () => {
     const hwpJson = {
       body_text: {
-        sections: [{
-          paragraphs: [{
-            para_header: {},
-            records: [{ type: 'para_text', runs: [{ kind: 'text', text: '텍스트\x00값' }] }],
-          }],
-        }],
+        sections: [
+          {
+            paragraphs: [
+              {
+                para_header: {},
+                records: [{ type: 'para_text', runs: [{ kind: 'text', text: '텍스트\x00값' }] }],
+              },
+            ],
+          },
+        ],
       },
     };
     const records = extractContent(hwpJson, hwpJson.body_text, new Map());
-    const textRec = records.find(r => r.kind === 'text');
+    const textRec = records.find((r) => r.kind === 'text');
     expect(textRec?.content).toBe('텍스트값');
   });
 
   it('빈 단락은 레코드에 미포함', () => {
     const hwpJson = {
       body_text: {
-        sections: [{
-          paragraphs: [
-            { para_header: {}, records: [] },
-            { para_header: {}, records: [{ type: 'para_text', runs: [{ kind: 'text', text: '내용' }] }] },
-          ],
-        }],
+        sections: [
+          {
+            paragraphs: [
+              { para_header: {}, records: [] },
+              {
+                para_header: {},
+                records: [{ type: 'para_text', runs: [{ kind: 'text', text: '내용' }] }],
+              },
+            ],
+          },
+        ],
       },
     };
     const records = extractContent(hwpJson, hwpJson.body_text, new Map());
-    expect(records.filter(r => r.kind === 'text')).toHaveLength(1);
+    expect(records.filter((r) => r.kind === 'text')).toHaveLength(1);
   });
 
   it('table 레코드에 row_count / col_count 포함', () => {
     const hwpJson = loadHwpJson('table.hwp');
     const records = extractContent(hwpJson, hwpJson.body_text, new Map());
-    const tableRecs = records.filter(r => r.kind === 'table');
+    const tableRecs = records.filter((r) => r.kind === 'table');
     expect(tableRecs.length).toBeGreaterThan(0);
     for (const rec of tableRecs) {
       expect(rec.table?.row_count).toBeGreaterThan(0);
@@ -105,7 +122,7 @@ describe('extractContent', () => {
   it('셀 path 형식이 올바름', () => {
     const hwpJson = loadHwpJson('table.hwp');
     const records = extractContent(hwpJson, hwpJson.body_text, new Map());
-    const tableRec = records.find(r => r.kind === 'table');
+    const tableRec = records.find((r) => r.kind === 'table');
     const firstCell = tableRec?.table?.rows[0]?.cells[0];
     expect(firstCell?.path).toMatch(/\.rows\[0\]\.cells\[0\]$/);
   });
@@ -116,8 +133,8 @@ describe('extractContent', () => {
 
     const hwpJson = loadHwpJson('noori.hwp');
     const records = extractContent(hwpJson, hwpJson.body_text, new Map());
-    const textCount  = records.filter(r => r.kind === 'text').length;
-    const tableCount = records.filter(r => r.kind === 'table').length;
+    const textCount = records.filter((r) => r.kind === 'text').length;
+    const tableCount = records.filter((r) => r.kind === 'table').length;
     expect(textCount + tableCount).toBeGreaterThan(0);
   });
 });
@@ -146,7 +163,7 @@ describe('extractStyle', () => {
     let records = extractContent(hwpJson, hwpJson.body_text, new Map());
     records = extractStyle(hwpJson, records);
 
-    const withRuns = records.filter(r => r.kind === 'text' && r.runs && r.runs.length > 0);
+    const withRuns = records.filter((r) => r.kind === 'text' && r.runs && r.runs.length > 0);
     expect(withRuns.length).toBeGreaterThan(0);
   });
 
@@ -158,10 +175,10 @@ describe('extractStyle', () => {
     let records = extractContent(hwpJson, hwpJson.body_text, new Map());
     records = extractStyle(hwpJson, records);
 
-    const textRecs = records.filter(r => r.kind === 'text');
+    const textRecs = records.filter((r) => r.kind === 'text');
     expect(textRecs.length).toBeGreaterThan(0);
     // para_style 필드 존재 여부만 확인 (모든 레코드가 스타일 있을 수도, 없을 수도 있음)
-    const withStyle = textRecs.filter(r => r.para_style);
+    const withStyle = textRecs.filter((r) => r.para_style);
     expect(withStyle.length).toBeGreaterThanOrEqual(0);
   });
 
@@ -175,7 +192,7 @@ describe('extractStyle', () => {
 
     for (const rec of records) {
       if (rec.kind !== 'text' || !rec.runs || rec.runs.length === 0) continue;
-      const runsText = rec.runs.map(r => r.text).join('');
+      const runsText = rec.runs.map((r) => r.text).join('');
       // runs 결합이 원본 content와 동일해야 함 (정규화 후)
       expect(runsText.replace(/\s/g, '')).toBe((rec.content ?? '').replace(/\s/g, ''));
     }
@@ -192,9 +209,9 @@ describe('extract() 통합 API', () => {
     expect(result.meta.apis).toEqual(['content']);
     expect(result.records.length).toBeGreaterThan(0);
 
-    const textRecs = result.records.filter(r => r.kind === 'text');
+    const textRecs = result.records.filter((r) => r.kind === 'text');
     // content만이므로 runs가 없거나 빈 배열
-    const hasRuns = textRecs.some(r => r.runs && r.runs.length > 0);
+    const hasRuns = textRecs.some((r) => r.runs && r.runs.length > 0);
     expect(hasRuns).toBe(false);
   });
 
@@ -206,8 +223,8 @@ describe('extract() 통합 API', () => {
     const result = extract(hwpJson, { apis: ['content', 'style'] });
 
     expect(result.meta.apis).toEqual(['content', 'style']);
-    const textRecs = result.records.filter(r => r.kind === 'text');
-    const hasRuns = textRecs.some(r => r.runs && r.runs.length > 0);
+    const textRecs = result.records.filter((r) => r.kind === 'text');
+    const hasRuns = textRecs.some((r) => r.runs && r.runs.length > 0);
     expect(hasRuns).toBe(true);
   });
 
@@ -230,13 +247,13 @@ describe('extract() 통합 API', () => {
   it('table 레코드에 merges 포함 (table.hwp — 병합 있는 테이블)', () => {
     const hwpJson = loadHwpJson('table.hwp');
     const result = extract(hwpJson, { apis: ['content'] });
-    const tableWithMerge = result.records.find(r =>
-      r.kind === 'table' && r.table?.merges && r.table.merges.length > 0
+    const tableWithMerge = result.records.find(
+      (r) => r.kind === 'table' && r.table?.merges && r.table.merges.length > 0
     );
     expect(tableWithMerge).toBeDefined();
     expect(tableWithMerge!.table!.merges![0]).toMatchObject({
       start: expect.objectContaining({ row: expect.any(Number), col: expect.any(Number) }),
-      end:   expect.objectContaining({ row: expect.any(Number), col: expect.any(Number) }),
+      end: expect.objectContaining({ row: expect.any(Number), col: expect.any(Number) }),
     });
   });
 });

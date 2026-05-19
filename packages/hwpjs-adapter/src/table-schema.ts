@@ -175,7 +175,10 @@ function extractCellText(cell: HwpCell): string {
 /**
  * HWP 셀에서 텍스트와 이미지 모두 추출 (ImageMap이 제공된 경우)
  */
-function extractCellContent(cell: HwpCell, imageMap: ImageMap): { text: string; images: CellImage[] } {
+function extractCellContent(
+  cell: HwpCell,
+  imageMap: ImageMap
+): { text: string; images: CellImage[] } {
   const texts: string[] = [];
   const images: CellImage[] = [];
 
@@ -398,7 +401,7 @@ function isHwpTable(obj: unknown): obj is HwpTable {
  */
 export async function saveImagesToFiles(
   schemas: TableSchema[],
-  outputDir: string,
+  outputDir: string
 ): Promise<TableSchema[]> {
   const { mkdir, writeFile } = await import('node:fs/promises');
   await mkdir(outputDir, { recursive: true });
@@ -422,19 +425,17 @@ export async function saveImagesToFiles(
   }
 
   await Promise.all(
-    pending.map(({ path, base64 }) =>
-      writeFile(path, Buffer.from(base64, 'base64')),
-    ),
+    pending.map(({ path, base64 }) => writeFile(path, Buffer.from(base64, 'base64')))
   );
 
   // src를 파일 경로로 교체한 새 스키마 반환
-  return schemas.map(schema => ({
+  return schemas.map((schema) => ({
     ...schema,
-    rows: schema.rows.map(row => ({
+    rows: schema.rows.map((row) => ({
       ...row,
-      cells: row.cells.map(cell => ({
+      cells: row.cells.map((cell) => ({
         ...cell,
-        images: cell.images?.map(img => ({
+        images: cell.images?.map((img) => ({
           ...img,
           src: saved.get(img.id) ?? img.src,
         })),

@@ -15,12 +15,12 @@ export type Severity = 'CRITICAL' | 'ERROR' | 'WARN' | 'INFO';
 
 /** 비교 연산자 */
 export type CompareOp =
-  | 'eq'      // ==
-  | 'neq'     // !=
-  | 'lt'      // <
-  | 'lte'     // <=
-  | 'gt'      // >
-  | 'gte'     // >=
+  | 'eq' // ==
+  | 'neq' // !=
+  | 'lt' // <
+  | 'lte' // <=
+  | 'gt' // >
+  | 'gte' // >=
   | 'between' // value: [min, max] (inclusive)
   | 'matches'; // 정규식 (string 전용)
 
@@ -35,16 +35,16 @@ export type AggFn = 'sum' | 'min' | 'max' | 'avg' | 'count';
 // ============================================================================
 
 export type FieldType =
-  | 'text'             // 단일 텍스트 값
+  | 'text' // 단일 텍스트 값
   | 'checkbox_cluster' // 체크박스 군집 (options 배열)
-  | 'table_rows'       // 반복 행 묶음 (count + rows)
-  | 'number_set';      // 숫자 집합 (합계 등 집계 용도)
+  | 'table_rows' // 반복 행 묶음 (count + rows)
+  | 'number_set'; // 숫자 집합 (합계 등 집계 용도)
 
 export type ExtractorStrategy =
-  | 'row_contains_label'  // 특정 anchor 텍스트가 포함된 행에서 추출
-  | 'rows_after_header'   // anchor 텍스트가 있는 헤더 행 이후 모든 행
-  | 'cell_value_match'    // 특정 셀 값 정규식 매칭
-  | 'table_caption';      // 테이블 캡션 텍스트
+  | 'row_contains_label' // 특정 anchor 텍스트가 포함된 행에서 추출
+  | 'rows_after_header' // anchor 텍스트가 있는 헤더 행 이후 모든 행
+  | 'cell_value_match' // 특정 셀 값 정규식 매칭
+  | 'table_caption'; // 테이블 캡션 텍스트
 
 /** rows_after_header anchor별 세부 설정 */
 export interface AnchorConfig {

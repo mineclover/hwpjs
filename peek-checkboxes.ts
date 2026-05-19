@@ -4,7 +4,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as hwpjs from './packages/hwpjs/dist/index.js';
-import { transformHwpTablesWithSchema, extractAllTableSchemas } from './packages/hwpjs/src/table-schema';
+import {
+  transformHwpTablesWithSchema,
+  extractAllTableSchemas,
+} from './packages/hwpjs/src/table-schema';
 
 const PROBLEM_FILES = [
   '009. 강의계획서_건축설계도서 구성부터 작성까지_양지호.hwp',
@@ -21,8 +24,8 @@ for (const fname of PROBLEM_FILES) {
   let shown = 0;
   for (const schema of schemas) {
     for (const row of schema.rows) {
-      const vals = row.cells.map(c => String(c.value ?? ''));
-      if (!vals.some(v => v.includes('이론/실습/사례'))) continue;
+      const vals = row.cells.map((c) => String(c.value ?? ''));
+      if (!vals.some((v) => v.includes('이론/실습/사례'))) continue;
       if (shown >= 3) break;
 
       console.log(`\n[행 ${shown + 1}] 셀 ${vals.length}개:`);

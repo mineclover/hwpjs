@@ -34,7 +34,11 @@ const fail = (msg: string) => console.error(`${c.red}✗${c.reset} ${msg}`);
 async function run(cmd: string, opts?: { cwd?: string; noThrow?: boolean }) {
   try {
     const result = await $`bash -c ${cmd}`.cwd(opts?.cwd ?? '.').quiet();
-    return { ok: true, stdout: result.stdout.toString().trim(), stderr: result.stderr.toString().trim() };
+    return {
+      ok: true,
+      stdout: result.stdout.toString().trim(),
+      stderr: result.stderr.toString().trim(),
+    };
   } catch (e: any) {
     if (opts?.noThrow) return { ok: false, stdout: '', stderr: e.message ?? '' };
     throw e;
@@ -52,7 +56,7 @@ info(`현재 브랜치: ${currentBranch}`);
 // 2. 작업 중인 변경사항 체크
 const statusResult = await run('git status --porcelain');
 // untracked(??) 파일은 무시 — staged/unstaged 변경사항만 체크
-const dirtyLines = statusResult.stdout.split('\n').filter(l => l && !l.startsWith('??'));
+const dirtyLines = statusResult.stdout.split('\n').filter((l) => l && !l.startsWith('??'));
 if (dirtyLines.length > 0) {
   fail('커밋되지 않은 변경사항이 있습니다. 먼저 커밋하세요.');
   console.log(dirtyLines.join('\n'));
@@ -77,7 +81,12 @@ if (USE_TAG) {
 
 // 5. 업스트림 커밋 표시
 const upstreamLog = await run(`git log --oneline -3 ${upstreamRef}`);
-console.log(`\n  upstream 최신:\n${upstreamLog.stdout.split('\n').map(l => `    ${l}`).join('\n')}\n`);
+console.log(
+  `\n  upstream 최신:\n${upstreamLog.stdout
+    .split('\n')
+    .map((l) => `    ${l}`)
+    .join('\n')}\n`
+);
 
 // 6. rebase (dry-run이 아닐 때)
 if (DRY_RUN) {
@@ -92,7 +101,9 @@ if (DRY_RUN) {
     warn('충돌 감지 — 자동 해결 시도 중...');
 
     // 바이너리 .node 파일 → upstream 버전 유지
-    await run("git checkout --theirs 'packages/hwpjs/dist/*.node' 2>/dev/null || true", { noThrow: true });
+    await run("git checkout --theirs 'packages/hwpjs/dist/*.node' 2>/dev/null || true", {
+      noThrow: true,
+    });
 
     const unmerged = await run('git ls-files --unmerged --name-only');
     if (unmerged.stdout) {
@@ -117,10 +128,9 @@ if (DRY_RUN) {
 console.log(`\n${c.bold}어댑터 테스트 실행...${c.reset}`);
 info('bun test packages/hwpjs-adapter/__test__/table-schema.spec.ts');
 
-const testResult = await run(
-  'bun test packages/hwpjs-adapter/__test__/table-schema.spec.ts',
-  { noThrow: true }
-);
+const testResult = await run('bun test packages/hwpjs-adapter/__test__/table-schema.spec.ts', {
+  noThrow: true,
+});
 
 console.log(testResult.stdout || testResult.stderr);
 
@@ -141,7 +151,7 @@ const adapterCommits = finalLog.stdout ? finalLog.stdout.split('\n') : [];
 console.log(`\n${c.bold}완료${c.reset}`);
 if (adapterCommits.length > 0) {
   console.log(`  어댑터 커밋 ${adapterCommits.length}개가 upstream 위에 있습니다:`);
-  adapterCommits.forEach(l => console.log(`    ${l}`));
+  adapterCommits.forEach((l) => console.log(`    ${l}`));
 } else {
   console.log('  upstream과 동일합니다.');
 }

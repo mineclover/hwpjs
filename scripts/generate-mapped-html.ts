@@ -1,41 +1,56 @@
 /**
  * mapped/*.extract.json → HTML 뷰어 생성
  */
-import type { ExtractResult, DocRecord, StyleRun, TableCellRecord } from '../packages/hwpjs-adapter/src/extract/index.js';
+import type {
+  ExtractResult,
+  DocRecord,
+  StyleRun,
+  TableCellRecord,
+} from '../packages/hwpjs-adapter/src/extract/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const mappedDir = 'D:/woo-work/hwp-pipe-output/mapped';
-const htmlDir   = 'D:/woo-work/hwp-pipe-output/html';
+const htmlDir = 'D:/woo-work/hwp-pipe-output/html';
 fs.mkdirSync(htmlDir, { recursive: true });
 
 // ─── 렌더러 ──────────────────────────────────────────────────────────────────
 
 function esc(s: string) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function renderRuns(runs: StyleRun[] | undefined, fallback: string): string {
-  if (!runs || runs.length === 0) return esc(fallback).replace(/\n/g,'<br>');
-  return runs.map(r => {
-    const s = r.style;
-    const css = [
-      s.bold ? 'font-weight:bold' : '',
-      s.italic ? 'font-style:italic' : '',
-      s.underline ? 'text-decoration:underline' : '',
-      s.strikethrough ? 'text-decoration:line-through' : '',
-      s.color && s.color !== '#000000' ? `color:${s.color}` : '',
-      s.bg_color ? `background:${s.bg_color}` : '',
-    ].filter(Boolean).join(';');
-    return css ? `<span style="${css}">${esc(r.text)}</span>` : esc(r.text);
-  }).join('');
+  if (!runs || runs.length === 0) return esc(fallback).replace(/\n/g, '<br>');
+  return runs
+    .map((r) => {
+      const s = r.style;
+      const css = [
+        s.bold ? 'font-weight:bold' : '',
+        s.italic ? 'font-style:italic' : '',
+        s.underline ? 'text-decoration:underline' : '',
+        s.strikethrough ? 'text-decoration:line-through' : '',
+        s.color && s.color !== '#000000' ? `color:${s.color}` : '',
+        s.bg_color ? `background:${s.bg_color}` : '',
+      ]
+        .filter(Boolean)
+        .join(';');
+      return css ? `<span style="${css}">${esc(r.text)}</span>` : esc(r.text);
+    })
+    .join('');
 }
 
 function renderCell(cell: TableCellRecord): string {
   const text = renderRuns(cell.runs, cell.content);
-  const imgs = (cell.images ?? []).map(img =>
-    `<img src="${img.src}" alt="" style="max-width:100%;display:block;margin-top:4px">`
-  ).join('');
+  const imgs = (cell.images ?? [])
+    .map(
+      (img) => `<img src="${img.src}" alt="" style="max-width:100%;display:block;margin-top:4px">`
+    )
+    .join('');
   return `<div class="cell-path">${esc(cell.path)}</div><div class="cell-content">${text}${imgs}</div>`;
 }
 
@@ -44,26 +59,36 @@ function renderTable(record: DocRecord): string {
   const { rows, merges = [] } = record.table;
 
   function isMergedAway(r: number, c: number) {
-    return merges.some(m =>
-      (r > m.start.row || (r === m.start.row && c > m.start.col)) &&
-      r <= m.end.row && c <= m.end.col
+    return merges.some(
+      (m) =>
+        (r > m.start.row || (r === m.start.row && c > m.start.col)) &&
+        r <= m.end.row &&
+        c <= m.end.col
     );
   }
   function getSpan(r: number, c: number) {
-    const m = merges.find(m => m.start.row === r && m.start.col === c);
-    return m ? { cs: m.end.col-m.start.col+1, rs: m.end.row-m.start.row+1 } : { cs:1, rs:1 };
+    const m = merges.find((m) => m.start.row === r && m.start.col === c);
+    return m
+      ? { cs: m.end.col - m.start.col + 1, rs: m.end.row - m.start.row + 1 }
+      : { cs: 1, rs: 1 };
   }
 
-  const trs = rows.map((row, ri) => {
-    let ci = 0;
-    const tds = row.cells.map(cell => {
-      while (isMergedAway(ri, ci)) ci++;
-      const { cs, rs } = getSpan(ri, ci++);
-      const span = [cs>1?`colspan="${cs}"`:'', rs>1?`rowspan="${rs}"`:''].filter(Boolean).join(' ');
-      return `<td${span?' '+span:''}>${renderCell(cell)}</td>`;
-    }).join('');
-    return `<tr>${tds}</tr>`;
-  }).join('');
+  const trs = rows
+    .map((row, ri) => {
+      let ci = 0;
+      const tds = row.cells
+        .map((cell) => {
+          while (isMergedAway(ri, ci)) ci++;
+          const { cs, rs } = getSpan(ri, ci++);
+          const span = [cs > 1 ? `colspan="${cs}"` : '', rs > 1 ? `rowspan="${rs}"` : '']
+            .filter(Boolean)
+            .join(' ');
+          return `<td${span ? ' ' + span : ''}>${renderCell(cell)}</td>`;
+        })
+        .join('');
+      return `<tr>${tds}</tr>`;
+    })
+    .join('');
 
   return `<table>${trs}</table>`;
 }
@@ -73,29 +98,34 @@ function renderDoc(result: ExtractResult, cdms: string): string {
   const hwpFile = path.basename(meta.source_hwp ?? '');
   let tableIdx = 0;
 
-  const blocks = result.records.map(record => {
-    if (record.kind === 'text') {
-      const ps = record.para_style;
-      const hint = ps ? `${ps.align} | 행간${ps.line_spacing}%` : '';
-      return `<div class="block text-block">
+  const blocks = result.records
+    .map((record) => {
+      if (record.kind === 'text') {
+        const ps = record.para_style;
+        const hint = ps ? `${ps.align} | 행간${ps.line_spacing}%` : '';
+        return `<div class="block text-block">
         <div class="id-col">
           <span class="path-tag">${esc(record.path)}</span>
           ${hint ? `<span class="style-hint">${esc(hint)}</span>` : ''}
         </div>
         <div class="content-col"><p>${renderRuns(record.runs, record.content ?? '')}</p></div>
       </div>`;
-    }
-    tableIdx++;
-    const imgCount = record.table?.rows.flatMap(r=>r.cells).reduce((n,c)=>n+(c.images?.length??0),0)??0;
-    return `<div class="block table-block">
+      }
+      tableIdx++;
+      const imgCount =
+        record.table?.rows
+          .flatMap((r) => r.cells)
+          .reduce((n, c) => n + (c.images?.length ?? 0), 0) ?? 0;
+      return `<div class="block table-block">
       <div class="block-header">
         <span class="table-index">Table ${tableIdx}</span>
         <span class="path-tag">${esc(record.path)}</span>
-        ${imgCount>0?`<span class="img-badge">이미지 ${imgCount}</span>`:''}
+        ${imgCount > 0 ? `<span class="img-badge">이미지 ${imgCount}</span>` : ''}
       </div>
       <div class="table-wrap">${renderTable(record)}</div>
     </div>`;
-  }).join('\n');
+    })
+    .join('\n');
 
   return `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8">
@@ -133,10 +163,10 @@ function renderDoc(result: ExtractResult, cdms: string): string {
 <div class="file-info">
   <h1>[${esc(cdms)}] ${esc(meta.title ?? hwpFile)}</h1>
   <div class="file-row"><span class="file-label">HWP</span><span class="file-path">${esc(hwpFile)}</span></div>
-  <div class="file-row"><span class="file-label">APIs</span><span class="file-path">${esc((meta.apis??[]).join(', '))}</span></div>
+  <div class="file-row"><span class="file-label">APIs</span><span class="file-path">${esc((meta.apis ?? []).join(', '))}</span></div>
   <div class="file-stats">
-    <div class="stat">텍스트 <strong>${result.records.filter(r=>r.kind==='text').length}</strong></div>
-    <div class="stat">테이블 <strong>${result.records.filter(r=>r.kind==='table').length}</strong></div>
+    <div class="stat">텍스트 <strong>${result.records.filter((r) => r.kind === 'text').length}</strong></div>
+    <div class="stat">테이블 <strong>${result.records.filter((r) => r.kind === 'table').length}</strong></div>
   </div>
 </div>
 ${blocks}
@@ -145,28 +175,29 @@ ${blocks}
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-const extractFiles = fs.readdirSync(mappedDir)
-  .filter(f => f.endsWith('.extract.json'))
+const extractFiles = fs
+  .readdirSync(mappedDir)
+  .filter((f) => f.endsWith('.extract.json'))
   .sort();
 
 console.log(`\n${extractFiles.length}개 extract.json → HTML 변환\n`);
 
 for (const fname of extractFiles) {
-  const cdms = fname.replace('.extract.json','');
-  const result: ExtractResult = JSON.parse(
-    fs.readFileSync(path.join(mappedDir, fname), 'utf-8')
-  );
+  const cdms = fname.replace('.extract.json', '');
+  const result: ExtractResult = JSON.parse(fs.readFileSync(path.join(mappedDir, fname), 'utf-8'));
   const html = renderDoc(result, cdms);
   fs.writeFileSync(path.join(htmlDir, `${cdms}.html`), html);
   process.stdout.write(`✓ ${cdms}\n`);
 }
 
 // 인덱스 HTML
-const indexRows = extractFiles.map(fname => {
-  const cdms = fname.replace('.extract.json','');
-  const meta = (JSON.parse(fs.readFileSync(path.join(mappedDir,fname),'utf-8')) as any).meta;
-  return `<tr><td><a href="${cdms}.html" target="_blank">${cdms}</a></td><td>${esc(meta.title??'')}</td><td>${esc(path.basename(meta.source_hwp??''))}</td></tr>`;
-}).join('');
+const indexRows = extractFiles
+  .map((fname) => {
+    const cdms = fname.replace('.extract.json', '');
+    const meta = (JSON.parse(fs.readFileSync(path.join(mappedDir, fname), 'utf-8')) as any).meta;
+    return `<tr><td><a href="${cdms}.html" target="_blank">${cdms}</a></td><td>${esc(meta.title ?? '')}</td><td>${esc(path.basename(meta.source_hwp ?? ''))}</td></tr>`;
+  })
+  .join('');
 
 const indexHtml = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>HWP Pipeline Index</title>
 <style>body{font-family:'Malgun Gothic',sans-serif;padding:24px;}table{border-collapse:collapse;width:100%;}
@@ -176,5 +207,5 @@ tr:nth-child(even){background:#f5f7ff;}a{color:#3b5bdb;}</style></head><body>
 <table><thead><tr><th>CDMS 코드</th><th>과정명</th><th>HWP 파일</th></tr></thead>
 <tbody>${indexRows}</tbody></table></body></html>`;
 
-fs.writeFileSync(path.join(htmlDir,'index.html'), indexHtml);
+fs.writeFileSync(path.join(htmlDir, 'index.html'), indexHtml);
 console.log(`\n✅ 완료 → ${htmlDir}/index.html`);

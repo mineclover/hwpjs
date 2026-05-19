@@ -3,26 +3,29 @@
  */
 import * as fs from 'fs';
 
-const inPath  = 'D:/woo-work/hwp-pipe-output/collect-validation.json';
+const inPath = 'D:/woo-work/hwp-pipe-output/collect-validation.json';
 const outPath = 'D:/woo-work/hwp-pipe-output/collect-validation.html';
 
 const results: any[] = JSON.parse(fs.readFileSync(inPath, 'utf-8'));
 
 function esc(s: string) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 const TYPE_COLOR: Record<string, string> = {
-  course_info:      '#3b5bdb',
-  weekly_plan:      '#0ca678',
-  weekly_plan_kor:  '#1c7ed6',
-  instructor_info:  '#e67700',
-  expert_criteria:  '#7950f2',
+  course_info: '#3b5bdb',
+  weekly_plan: '#0ca678',
+  weekly_plan_kor: '#1c7ed6',
+  instructor_info: '#e67700',
+  expert_criteria: '#7950f2',
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  course_info:     '과정정보',
-  weekly_plan:     '주차계획',
+  course_info: '과정정보',
+  weekly_plan: '주차계획',
   weekly_plan_kor: '주차계획KOR',
   instructor_info: '강사정보',
   expert_criteria: '전문가기준',
@@ -39,7 +42,7 @@ for (const r of results) {
 function badge(type: string, size: string, matchedText?: string) {
   const color = TYPE_COLOR[type] ?? '#868e96';
   const label = TYPE_LABEL[type] ?? type;
-  const tip   = matchedText ? ` title="${esc(matchedText)}"` : '';
+  const tip = matchedText ? ` title="${esc(matchedText)}"` : '';
   return `<span class="badge"${tip} style="background:${color}">${esc(label)} <span class="sz">${esc(size)}</span></span>`;
 }
 
@@ -75,19 +78,23 @@ function tableRow(r: any) {
 }
 
 // 컬럼 헤더 (최대 테이블 수)
-const maxTables = Math.max(...results.map(r => r.totalTables ?? 0));
-const colHeaders = Array.from({ length: maxTables }, (_, i) =>
-  `<th class="tbl-col">tbl[${i}]</th>`
+const maxTables = Math.max(...results.map((r) => r.totalTables ?? 0));
+const colHeaders = Array.from(
+  { length: maxTables },
+  (_, i) => `<th class="tbl-col">tbl[${i}]</th>`
 ).join('');
 
 // 범례
-const legendItems = Object.entries(TYPE_COLOR).map(([k, c]) =>
-  `<span class="legend-item"><span class="legend-dot" style="background:${c}"></span>${TYPE_LABEL[k] ?? k} <strong>${typeTotals[k] ?? 0}</strong></span>`
-).join('');
+const legendItems = Object.entries(TYPE_COLOR)
+  .map(
+    ([k, c]) =>
+      `<span class="legend-item"><span class="legend-dot" style="background:${c}"></span>${TYPE_LABEL[k] ?? k} <strong>${typeTotals[k] ?? 0}</strong></span>`
+  )
+  .join('');
 
 // 요약 카드
 const totalMatched = results.reduce((n, r) => n + (r.matched?.length ?? 0), 0);
-const totalTables  = results.reduce((n, r) => n + (r.totalTables ?? 0), 0);
+const totalTables = results.reduce((n, r) => n + (r.totalTables ?? 0), 0);
 const unmatchedTotal = totalTables - totalMatched;
 
 const html = `<!DOCTYPE html>

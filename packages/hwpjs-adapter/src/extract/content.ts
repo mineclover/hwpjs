@@ -1,7 +1,13 @@
 import { transformHwpTablesWithSchema, type TableSchema, type ImageMap } from '../table-schema.js';
 import { normalizeText } from '../utils/normalize.js';
 import { collectAllTableSchemas, collectBinIds } from '../utils/traverse.js';
-import type { DocRecord, TableRecord, TableRowRecord, TableCellRecord, MergeRange } from './types.js';
+import type {
+  DocRecord,
+  TableRecord,
+  TableRowRecord,
+  TableCellRecord,
+  MergeRange,
+} from './types.js';
 
 // ─── 텍스트 추출 헬퍼 ─────────────────────────────────────────────────────────
 
@@ -30,7 +36,7 @@ function extractParaText(para: any): string {
 interface TblCtrlData {
   flatTexts: string[];
   rawCells: any[];
-  rawTable: unknown;   // 이미지 주입용 raw table
+  rawTable: unknown; // 이미지 주입용 raw table
 }
 
 function parseTblCtrl(rawPara: any): TblCtrlData {
@@ -42,10 +48,13 @@ function parseTblCtrl(rawPara: any): TblCtrlData {
     if (rec.type !== 'ctrl_header' || rec.ctrl_id?.trim() !== 'tbl') continue;
 
     for (const p of rec.paragraphs ?? []) {
-      const t = runsToText(p) ||
-        ((p.records ?? []).filter((r: any) => r.type === 'para_text' && r.text)
+      const t =
+        runsToText(p) ||
+        (p.records ?? [])
+          .filter((r: any) => r.type === 'para_text' && r.text)
           .map((r: any) => normalizeText(r.text))
-          .filter(Boolean).join(' '));
+          .filter(Boolean)
+          .join(' ');
       flatTexts.push(t);
     }
 
@@ -59,15 +68,15 @@ function parseTblCtrl(rawPara: any): TblCtrlData {
 // ─── 셀 내용 검사 / 주입 ──────────────────────────────────────────────────────
 
 function allCellsEmpty(schema: TableSchema): boolean {
-  return schema.rows.every(row =>
-    row.cells.every(cell => !cell.value || String(cell.value).trim() === '')
+  return schema.rows.every((row) =>
+    row.cells.every((cell) => !cell.value || String(cell.value).trim() === '')
   );
 }
 
 function fillCellsFromFlat(schema: TableSchema, flatTexts: string[], rawCells: any[]): void {
   if (flatTexts.length === 0) return;
 
-  const schemaCells: Array<typeof schema.rows[0]['cells'][0]> = [];
+  const schemaCells: Array<(typeof schema.rows)[0]['cells'][0]> = [];
   for (const row of schema.rows) schemaCells.push(...row.cells);
 
   const sortedRaw = [...rawCells].sort((a, b) =>
@@ -79,7 +88,7 @@ function fillCellsFromFlat(schema: TableSchema, flatTexts: string[], rawCells: a
   let flatIdx = 0;
   for (let i = 0; i < Math.min(schemaCells.length, sortedRaw.length); i++) {
     const paraCount = sortedRaw[i]?.paragraphs?.length ?? 1;
-    const chunk = flatTexts.slice(flatIdx, flatIdx + paraCount).filter(t => t.trim());
+    const chunk = flatTexts.slice(flatIdx, flatIdx + paraCount).filter((t) => t.trim());
     if (chunk.length > 0) schemaCells[i].value = chunk.join('\n');
     flatIdx += paraCount;
   }
@@ -95,7 +104,7 @@ function schemaToTableRecord(schema: TableSchema, schemaPath: string): TableReco
       path: `${schemaPath}.rows[${ri}].cells[${ci}]`,
       content: cell.value != null ? normalizeText(cell.value, false) : '',
       ...(cell.images && cell.images.length > 0
-        ? { images: cell.images.map(img => ({ id: img.id, src: img.src, format: img.format })) }
+        ? { images: cell.images.map((img) => ({ id: img.id, src: img.src, format: img.format })) }
         : {}),
     }));
     return { cells };
@@ -122,8 +131,11 @@ function injectImages(rawTables: unknown[], tableRecords: TableRecord[], imageMa
         const binIds = collectBinIds(rawCells[ci++]);
         if (binIds.length > 0) {
           cell.images = binIds
-            .filter(id => imageMap.has(id))
-            .map(id => { const img = imageMap.get(id)!; return { id: `img-${id}`, src: img.dataUrl, format: img.format }; });
+            .filter((id) => imageMap.has(id))
+            .map((id) => {
+              const img = imageMap.get(id)!;
+              return { id: `img-${id}`, src: img.dataUrl, format: img.format };
+            });
         }
       }
     }
@@ -135,7 +147,7 @@ function injectImages(rawTables: unknown[], tableRecords: TableRecord[], imageMa
 export function extractContent(
   hwpJson: unknown,
   rawBodyText: unknown,
-  imageMap: ImageMap,
+  imageMap: ImageMap
 ): DocRecord[] {
   const records: DocRecord[] = [];
   const body = (hwpJson as any)?.body_text;

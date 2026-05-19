@@ -12,11 +12,7 @@
 import * as path from 'path';
 import { collectWithSpecs } from '@ohah/hwpjs-adapter/collection';
 import { ktechTableSpecs } from './ktech-table-specs.js';
-import {
-  loadCourseInfoJson,
-  extractCourseInfo,
-  type CourseInfo,
-} from './ncs-units.js';
+import { loadCourseInfoJson, extractCourseInfo, type CourseInfo } from './ncs-units.js';
 
 // ── A. JSON 직접 로드 (CSV 필드 포함, 권장) ───────────────────────────────
 //
@@ -35,7 +31,7 @@ export function loadTargetCourses(jsonPath: string): CourseInfo[] {
 
 export function extractFromSchemas(schemas: any[], fileName: string): CourseInfo {
   const collected = collectWithSpecs(schemas, ktechTableSpecs);
-  const courseInfoTable = collected.find(c => c.table_type === 'course_info');
+  const courseInfoTable = collected.find((c) => c.table_type === 'course_info');
   if (!courseInfoTable) throw new Error(`course_info 테이블 없음: ${fileName}`);
   return extractCourseInfo(courseInfoTable.schema, fileName);
 }

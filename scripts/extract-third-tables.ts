@@ -19,44 +19,44 @@ import {
 
 // 능력단위 정보 타입
 interface CompetencyUnit {
-  code: string;        // 분류번호 (예: 1503010210_14v3)
-  name: string;        // 능력단위명
-  level: string;       // NCS 수준 (예: 2수준)
+  code: string; // 분류번호 (예: 1503010210_14v3)
+  name: string; // 능력단위명
+  level: string; // NCS 수준 (예: 2수준)
 }
 
 // 체크박스 패턴 카운트 타입
 interface CheckboxPattern {
-  pattern: string;  // 예: "이론", "이론,실습", "이론,실습,사례"
+  pattern: string; // 예: "이론", "이론,실습", "이론,실습,사례"
   count: number;
 }
 
 interface CheckboxCounts {
-  patterns: CheckboxPattern[];  // 패턴별 빈도
-  topPattern: string;           // 최고빈도 패턴
-  totalLessons: number;         // 총 회차 수
+  patterns: CheckboxPattern[]; // 패턴별 빈도
+  topPattern: string; // 최고빈도 패턴
+  totalLessons: number; // 총 회차 수
 }
 
 interface ExtractedData {
   fileName: string;
-  fileNumber: number | null;    // 파일명에서 추출한 순번
-  courseName: string;           // 과정명(국문)
-  courseNameEn: string;         // 과정명(영문)
-  ncsApplied: boolean;          // NCS 적용 여부
+  fileNumber: number | null; // 파일명에서 추출한 순번
+  courseName: string; // 과정명(국문)
+  courseNameEn: string; // 과정명(영문)
+  ncsApplied: boolean; // NCS 적용 여부
   classification: {
-    major: { code: string; name: string };      // 대분류
-    middle: { code: string; name: string };     // 중분류
-    minor: { code: string; name: string };      // 소분류
-    detail: { code: string; name: string };     // 세분류
+    major: { code: string; name: string }; // 대분류
+    middle: { code: string; name: string }; // 중분류
+    minor: { code: string; name: string }; // 소분류
+    detail: { code: string; name: string }; // 세분류
   };
-  competencyUnits: CompetencyUnit[];  // 능력단위 목록
-  maxNcsLevel: number | null;   // 최고 NCS 수준
+  competencyUnits: CompetencyUnit[]; // 능력단위 목록
+  maxNcsLevel: number | null; // 최고 NCS 수준
   // CSV에서 매칭된 정보
-  publicContentEval: string;    // 공공 콘텐츠 평가 (Y/N)
-  category: string;             // 구분
-  cdmsCode: string;             // CDMS 과목코드
+  publicContentEval: string; // 공공 콘텐츠 평가 (Y/N)
+  category: string; // 구분
+  cdmsCode: string; // CDMS 과목코드
   // 체크박스 카운트 (이론/실습/사례)
   checkboxCounts: CheckboxCounts;
-  tableSchema?: TableSchema;    // 원본 테이블 스키마
+  tableSchema?: TableSchema; // 원본 테이블 스키마
 }
 
 // CSV 데이터 타입
@@ -81,9 +81,13 @@ function getCellValue(row: TableSchemaRow, colIndex: number): string {
 /**
  * 특정 row, col에서 시작하는 merge 정보 찾기
  */
-function findMergeAt(merges: MergeRange[] | undefined, row: number, col: number): MergeRange | undefined {
+function findMergeAt(
+  merges: MergeRange[] | undefined,
+  row: number,
+  col: number
+): MergeRange | undefined {
   if (!merges) return undefined;
-  return merges.find(m => m.start.row === row && m.start.col === col);
+  return merges.find((m) => m.start.row === row && m.start.col === col);
 }
 
 /**
@@ -209,7 +213,11 @@ function findCellWithText(row: TableSchemaRow, text: string): number {
 /**
  * 테이블 스키마에서 능력단위 정보 추출
  */
-function extractCompetencyData(schema: TableSchema, fileName: string, csvMap?: Map<number, CsvRecord>): ExtractedData {
+function extractCompetencyData(
+  schema: TableSchema,
+  fileName: string,
+  csvMap?: Map<number, CsvRecord>
+): ExtractedData {
   const fileNumber = extractFileNumber(fileName);
   const csvRecord = fileNumber !== null && csvMap ? csvMap.get(fileNumber) : undefined;
 
@@ -312,11 +320,17 @@ function countCheckboxes(schemas: TableSchema[]): CheckboxCounts {
           // - ☑ 또는 ■ = checked
           // - ▢ = unchecked
           // - ▢ 없이 텍스트만 있으면 = checked (일부 파일에서 체크시 ▢ 제거)
-          const isTheoryChecked = theoryVal.includes('☑') || theoryVal.includes('■') ||
+          const isTheoryChecked =
+            theoryVal.includes('☑') ||
+            theoryVal.includes('■') ||
             (theoryVal.includes('이론') && !theoryVal.includes('▢'));
-          const isPracticeChecked = practiceVal.includes('☑') || practiceVal.includes('■') ||
+          const isPracticeChecked =
+            practiceVal.includes('☑') ||
+            practiceVal.includes('■') ||
             (practiceVal.includes('실습') && !practiceVal.includes('▢'));
-          const isCaseChecked = caseVal.includes('☑') || caseVal.includes('■') ||
+          const isCaseChecked =
+            caseVal.includes('☑') ||
+            caseVal.includes('■') ||
             (caseVal.includes('사례') && !caseVal.includes('▢'));
 
           // 패턴 생성
@@ -342,7 +356,7 @@ function countCheckboxes(schemas: TableSchema[]): CheckboxCounts {
 
   // 최고빈도 패턴 (동률일 경우 모두 표시)
   const maxCount = patterns[0]?.count || 0;
-  const topPatterns = patterns.filter(p => p.count === maxCount).map(p => p.pattern);
+  const topPatterns = patterns.filter((p) => p.count === maxCount).map((p) => p.pattern);
 
   return {
     patterns,
@@ -427,7 +441,8 @@ function generateCompetencyHtml(dataList: ExtractedData[]): string {
   for (const data of dataList) {
     const levelClass = getLevelClass(data.maxNcsLevel);
     const levelDisplay = data.maxNcsLevel !== null ? `${data.maxNcsLevel}수준` : '-';
-    const evalClass = data.publicContentEval === 'Y' ? 'eval-y' : data.publicContentEval === 'N' ? 'eval-n' : '';
+    const evalClass =
+      data.publicContentEval === 'Y' ? 'eval-y' : data.publicContentEval === 'N' ? 'eval-n' : '';
 
     html += `<div class="file-section">
   <div class="file-name">${escapeHtml(data.fileName)}</div>
@@ -454,7 +469,7 @@ function generateCompetencyHtml(dataList: ExtractedData[]): string {
       <span class="checkbox-total">${data.checkboxCounts.totalLessons}개</span>
     </div>
     <div class="checkbox-detail">
-      ${data.checkboxCounts.patterns.map(p => `<span class="pattern-badge">${escapeHtml(p.pattern)}(${p.count})</span>`).join(' ')}
+      ${data.checkboxCounts.patterns.map((p) => `<span class="pattern-badge">${escapeHtml(p.pattern)}(${p.count})</span>`).join(' ')}
     </div>
   </div>
 `;
@@ -536,7 +551,9 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error('Usage: bun scripts/extract-third-tables.ts <input-folder> [output-folder] [table-number]');
+    console.error(
+      'Usage: bun scripts/extract-third-tables.ts <input-folder> [output-folder] [table-number]'
+    );
     process.exit(1);
   }
 
@@ -556,10 +573,11 @@ async function main() {
 
   const imageOutputDir = path.join(outputFolder, 'images');
 
-  const hwpFiles = fs.readdirSync(folderPath)
-    .filter(f => f.toLowerCase().endsWith('.hwp'))
+  const hwpFiles = fs
+    .readdirSync(folderPath)
+    .filter((f) => f.toLowerCase().endsWith('.hwp'))
     .sort()
-    .map(f => path.join(folderPath, f));
+    .map((f) => path.join(folderPath, f));
 
   if (hwpFiles.length === 0) {
     console.error(`No HWP files found in: ${folderPath}`);
@@ -593,7 +611,9 @@ async function main() {
         data.checkboxCounts = countCheckboxes(schemas);
 
         extractedDataList.push(data);
-        console.log(`  -> Found ${schemas.length} table(s), ${data.competencyUnits.length} unit(s), ${data.checkboxCounts.totalLessons}회차`);
+        console.log(
+          `  -> Found ${schemas.length} table(s), ${data.competencyUnits.length} unit(s), ${data.checkboxCounts.totalLessons}회차`
+        );
       } else {
         console.log(`  -> Only ${schemas.length} table(s), skipping`);
       }
@@ -609,7 +629,7 @@ async function main() {
   console.log(`\nHTML saved to: ${htmlPath}`);
 
   // JSON 출력 (tableSchema 제외한 버전)
-  const jsonDataList = extractedDataList.map(d => {
+  const jsonDataList = extractedDataList.map((d) => {
     const { tableSchema, ...rest } = d;
     return rest;
   });

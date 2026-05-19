@@ -101,9 +101,9 @@ function extractRowContainsLabel(field: FieldDef, tables: TableSchema[]): Extrac
 
     for (let ri = 0; ri < table.rows.length; ri++) {
       const row = table.rows[ri];
-      const cellVals = row.cells.map(c => String(c.value ?? '').trim());
+      const cellVals = row.cells.map((c) => String(c.value ?? '').trim());
 
-      if (!cellVals.some(v => v.includes(anchor))) continue;
+      if (!cellVals.some((v) => v.includes(anchor))) continue;
 
       const location = { table_index: ti, row_index: ri };
 
@@ -117,14 +117,17 @@ function extractRowContainsLabel(field: FieldDef, tables: TableSchema[]): Extrac
 
       if (field.type === 'text') {
         // anchor 셀 제외한 나머지 셀 값 병합
-        const value = cellVals.filter(v => !v.includes(anchor)).join(' ').trim();
+        const value = cellVals
+          .filter((v) => !v.includes(anchor))
+          .join(' ')
+          .trim();
         return { found: true, value, location } satisfies ExtractedText;
       }
 
       if (field.type === 'number_set') {
         const values = cellVals
-          .flatMap(v => (v.match(/\d+(\.\d+)?/g) ?? []).map(Number))
-          .filter(n => !isNaN(n));
+          .flatMap((v) => (v.match(/\d+(\.\d+)?/g) ?? []).map(Number))
+          .filter((n) => !isNaN(n));
         if (values.length > 0) {
           return { found: true, values, location } satisfies ExtractedNumberSet;
         }
@@ -146,11 +149,10 @@ function extractRowContainsLabel(field: FieldDef, tables: TableSchema[]): Extrac
  */
 function extractRowsAfterHeader(field: FieldDef, tables: TableSchema[]): ExtractedField {
   // anchors_config가 있으면 우선 사용, 없으면 anchor/anchors에서 구성
-  const anchorConfigs: AnchorConfig[] = field.extractor.anchors_config
-    ?? [
-        ...(field.extractor.anchor ? [{ anchor: field.extractor.anchor }] : []),
-        ...(field.extractor.anchors ?? []).map(a => ({ anchor: a })),
-      ];
+  const anchorConfigs: AnchorConfig[] = field.extractor.anchors_config ?? [
+    ...(field.extractor.anchor ? [{ anchor: field.extractor.anchor }] : []),
+    ...(field.extractor.anchors ?? []).map((a) => ({ anchor: a })),
+  ];
 
   if (anchorConfigs.length === 0) return { found: false };
 
@@ -166,8 +168,8 @@ function extractRowsAfterHeader(field: FieldDef, tables: TableSchema[]): Extract
       let headerIdx = -1;
 
       for (let ri = 0; ri < table.rows.length; ri++) {
-        const cellVals = table.rows[ri].cells.map(c => String(c.value ?? '').trim());
-        if (cellVals.some(v => v.includes(anchor))) {
+        const cellVals = table.rows[ri].cells.map((c) => String(c.value ?? '').trim());
+        if (cellVals.some((v) => v.includes(anchor))) {
           headerIdx = ri;
           break;
         }
@@ -177,7 +179,7 @@ function extractRowsAfterHeader(field: FieldDef, tables: TableSchema[]): Extract
 
       const dataRows = table.rows
         .slice(headerIdx + 1)
-        .map(row => row.cells.map(c => String(c.value ?? '').trim()));
+        .map((row) => row.cells.map((c) => String(c.value ?? '').trim()));
 
       // min_rows 미만이면 이 매칭을 건너뜁니다 (다음 anchor 또는 다음 테이블로)
       if (dataRows.length < minRows) continue;
@@ -186,7 +188,7 @@ function extractRowsAfterHeader(field: FieldDef, tables: TableSchema[]): Extract
       const patternStr = cfg.item_header_pattern ?? field.extractor.item_header_pattern;
       const itemPattern = patternStr ? new RegExp(patternStr) : null;
       const count = itemPattern
-        ? dataRows.filter(r => itemPattern.test(r[0] ?? '')).length
+        ? dataRows.filter((r) => itemPattern.test(r[0] ?? '')).length
         : dataRows.length;
 
       return {
@@ -283,7 +285,7 @@ export function extractField(field: FieldDef, tables: TableSchema[]): ExtractedF
  */
 export function extractAllFields(
   fields: FieldDef[],
-  tables: TableSchema[],
+  tables: TableSchema[]
 ): Record<string, ExtractedField> {
   const result: Record<string, ExtractedField> = {};
   for (const field of fields) {

@@ -3,14 +3,24 @@ import { extractContent } from './content.js';
 import { extractStyle } from './style.js';
 import type { ImageMap } from '../table-schema.js';
 
-export type { ExtractResult, ExtractApi, DocRecord, StyleRun, CharStyle, ParagraphStyle,
-              TableRecord, TableRowRecord, TableCellRecord, MergeRange } from './types.js';
+export type {
+  ExtractResult,
+  ExtractApi,
+  DocRecord,
+  StyleRun,
+  CharStyle,
+  ParagraphStyle,
+  TableRecord,
+  TableRowRecord,
+  TableCellRecord,
+  MergeRange,
+} from './types.js';
 
 export type ExtractOptions = {
-  apis?: ExtractApi[]                // default: ['content']
-  imageMap?: ImageMap
-  sourcePaths?: { hwp?: string; json?: string }
-}
+  apis?: ExtractApi[]; // default: ['content']
+  imageMap?: ImageMap;
+  sourcePaths?: { hwp?: string; json?: string };
+};
 
 export function extract(hwpJson: unknown, options: ExtractOptions = {}): ExtractResult {
   const { apis = ['content'], imageMap = new Map(), sourcePaths = {} } = options;

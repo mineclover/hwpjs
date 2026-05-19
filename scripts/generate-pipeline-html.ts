@@ -1,11 +1,16 @@
 import { toJson, toHtml } from '../packages/hwpjs/dist/index.js';
-import { extract, type DocRecord, type StyleRun, type TableCellRecord } from '../packages/hwpjs-adapter/src/extract/index.js';
+import {
+  extract,
+  type DocRecord,
+  type StyleRun,
+  type TableCellRecord,
+} from '../packages/hwpjs-adapter/src/extract/index.js';
 import type { ImageMap } from '../packages/hwpjs-adapter/src/table-schema.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const fixturesDir = path.join(import.meta.dir, '../crates/hwp-core/tests/fixtures');
-const outDir      = path.join(import.meta.dir, '../output');
+const outDir = path.join(import.meta.dir, '../output');
 fs.mkdirSync(outDir, { recursive: true });
 
 // ─── imageMap ────────────────────────────────────────────────────────────────
@@ -23,31 +28,39 @@ function buildImageMap(html: string): ImageMap {
 // ─── 렌더러 ──────────────────────────────────────────────────────────────────
 
 function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function renderRuns(runs: StyleRun[] | undefined, fallback: string): string {
   if (!runs || runs.length === 0) return esc(fallback).replace(/\n/g, '<br>');
-  return runs.map(run => {
-    const s = run.style;
-    const css = [
-      s.bold ? 'font-weight:bold' : '',
-      s.italic ? 'font-style:italic' : '',
-      s.underline ? 'text-decoration:underline' : '',
-      s.strikethrough ? 'text-decoration:line-through' : '',
-      s.color && s.color !== '#000000' ? `color:${s.color}` : '',
-      s.bg_color ? `background:${s.bg_color}` : '',
-    ].filter(Boolean).join(';');
-    const tag = css ? `<span style="${css}">` : '<span>';
-    return `${tag}${esc(run.text)}</span>`;
-  }).join('');
+  return runs
+    .map((run) => {
+      const s = run.style;
+      const css = [
+        s.bold ? 'font-weight:bold' : '',
+        s.italic ? 'font-style:italic' : '',
+        s.underline ? 'text-decoration:underline' : '',
+        s.strikethrough ? 'text-decoration:line-through' : '',
+        s.color && s.color !== '#000000' ? `color:${s.color}` : '',
+        s.bg_color ? `background:${s.bg_color}` : '',
+      ]
+        .filter(Boolean)
+        .join(';');
+      const tag = css ? `<span style="${css}">` : '<span>';
+      return `${tag}${esc(run.text)}</span>`;
+    })
+    .join('');
 }
 
 function renderCell(cell: TableCellRecord): string {
   const text = renderRuns(cell.runs, cell.content);
-  const imgs = (cell.images ?? []).map(img =>
-    `<img src="${img.src}" alt="" class="cell-img">`
-  ).join('');
+  const imgs = (cell.images ?? [])
+    .map((img) => `<img src="${img.src}" alt="" class="cell-img">`)
+    .join('');
   return `<div class="cell-path">${esc(cell.path)}</div>
           <div class="cell-content">${text}${imgs}</div>`;
 }
@@ -57,27 +70,37 @@ function renderTable(record: DocRecord): string {
   const { rows, merges = [] } = record.table;
 
   function isMergedAway(r: number, c: number) {
-    return merges.some(m =>
-      (r > m.start.row || (r === m.start.row && c > m.start.col)) &&
-      r <= m.end.row && c <= m.end.col
+    return merges.some(
+      (m) =>
+        (r > m.start.row || (r === m.start.row && c > m.start.col)) &&
+        r <= m.end.row &&
+        c <= m.end.col
     );
   }
   function getSpan(r: number, c: number) {
-    const m = merges.find(m => m.start.row === r && m.start.col === c);
-    return m ? { cs: m.end.col - m.start.col + 1, rs: m.end.row - m.start.row + 1 } : { cs: 1, rs: 1 };
+    const m = merges.find((m) => m.start.row === r && m.start.col === c);
+    return m
+      ? { cs: m.end.col - m.start.col + 1, rs: m.end.row - m.start.row + 1 }
+      : { cs: 1, rs: 1 };
   }
 
-  const trs = rows.map((row, ri) => {
-    let ci = 0;
-    const tds = row.cells.map(cell => {
-      while (isMergedAway(ri, ci)) ci++;
-      const { cs, rs } = getSpan(ri, ci);
-      const span = [cs > 1 ? `colspan="${cs}"` : '', rs > 1 ? `rowspan="${rs}"` : ''].filter(Boolean).join(' ');
-      ci++;
-      return `<td${span ? ' ' + span : ''}>${renderCell(cell)}</td>`;
-    }).join('');
-    return `<tr>${tds}</tr>`;
-  }).join('');
+  const trs = rows
+    .map((row, ri) => {
+      let ci = 0;
+      const tds = row.cells
+        .map((cell) => {
+          while (isMergedAway(ri, ci)) ci++;
+          const { cs, rs } = getSpan(ri, ci);
+          const span = [cs > 1 ? `colspan="${cs}"` : '', rs > 1 ? `rowspan="${rs}"` : '']
+            .filter(Boolean)
+            .join(' ');
+          ci++;
+          return `<td${span ? ' ' + span : ''}>${renderCell(cell)}</td>`;
+        })
+        .join('');
+      return `<tr>${tds}</tr>`;
+    })
+    .join('');
 
   return `<table>${trs}</table>`;
 }
@@ -98,13 +121,17 @@ function renderTextRecord(record: DocRecord): string {
 
 function renderBlocks(records: DocRecord[]): string {
   let tableIdx = 0;
-  return records.map(record => {
-    if (record.kind === 'text') {
-      return `<div class="block text-block">${renderTextRecord(record)}</div>`;
-    }
-    tableIdx++;
-    const imgCount = record.table?.rows.flatMap(r => r.cells).reduce((n, c) => n + (c.images?.length ?? 0), 0) ?? 0;
-    return `<div class="block table-block">
+  return records
+    .map((record) => {
+      if (record.kind === 'text') {
+        return `<div class="block text-block">${renderTextRecord(record)}</div>`;
+      }
+      tableIdx++;
+      const imgCount =
+        record.table?.rows
+          .flatMap((r) => r.cells)
+          .reduce((n, c) => n + (c.images?.length ?? 0), 0) ?? 0;
+      return `<div class="block table-block">
       <div class="block-header">
         <span class="table-index">Table ${tableIdx}</span>
         <span class="path-tag">${esc(record.path)}</span>
@@ -112,21 +139,22 @@ function renderBlocks(records: DocRecord[]): string {
       </div>
       <div class="table-wrap">${renderTable(record)}</div>
     </div>`;
-  }).join('\n');
+    })
+    .join('\n');
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-const target  = 'noori.hwp';
+const target = 'noori.hwp';
 const hwpPath = path.join(fixturesDir, target);
-const buf     = fs.readFileSync(hwpPath);
+const buf = fs.readFileSync(hwpPath);
 const baseName = path.basename(target, '.hwp');
 
 const hwpHtml = toHtml(buf, { includeVersion: true });
 fs.writeFileSync(path.join(outDir, `${baseName}-hwpjs.html`), hwpHtml);
 const imageMap = buildImageMap(hwpHtml);
 
-const hwpJson    = JSON.parse(toJson(buf));
+const hwpJson = JSON.parse(toJson(buf));
 const jsonOutPath = path.join(outDir, `${baseName}.json`);
 fs.writeFileSync(jsonOutPath, JSON.stringify(hwpJson, null, 2));
 
@@ -134,7 +162,7 @@ const result = extract(hwpJson, {
   apis: ['content', 'style'],
   imageMap,
   sourcePaths: {
-    hwp:  path.resolve(hwpPath).replace(/\\/g, '/'),
+    hwp: path.resolve(hwpPath).replace(/\\/g, '/'),
     json: path.resolve(jsonOutPath).replace(/\\/g, '/'),
   },
 });
@@ -143,14 +171,20 @@ const result = extract(hwpJson, {
 const extractOutPath = path.join(outDir, `${baseName}.extract.json`);
 fs.writeFileSync(extractOutPath, JSON.stringify(result, null, 2));
 
-const tableCount = result.records.filter(r => r.kind === 'table').length;
-const textCount  = result.records.filter(r => r.kind === 'text').length;
+const tableCount = result.records.filter((r) => r.kind === 'table').length;
+const textCount = result.records.filter((r) => r.kind === 'text').length;
 const imageTotal = result.records
-  .filter(r => r.kind === 'table')
-  .reduce((n, r) => n + (r.table?.rows.flatMap(row => row.cells).reduce((m, c) => m + (c.images?.length ?? 0), 0) ?? 0), 0);
+  .filter((r) => r.kind === 'table')
+  .reduce(
+    (n, r) =>
+      n +
+      (r.table?.rows.flatMap((row) => row.cells).reduce((m, c) => m + (c.images?.length ?? 0), 0) ??
+        0),
+    0
+  );
 
-const absHwpPath     = result.meta.source_hwp;
-const absJsonPath    = result.meta.source_json;
+const absHwpPath = result.meta.source_hwp;
+const absJsonPath = result.meta.source_json;
 const absExtractPath = path.resolve(extractOutPath).replace(/\\/g, '/');
 
 const html = `<!DOCTYPE html>

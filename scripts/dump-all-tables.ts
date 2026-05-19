@@ -60,16 +60,16 @@ function matchKnownLabel(val: string, labels: string[]): string | null {
 type CheckFormat = 'checkmark' | 'text-only' | 'unchecked' | 'unknown';
 
 interface CheckboxItem {
-  label: string;        // "이론" | "실습" | "사례" | ...
+  label: string; // "이론" | "실습" | "사례" | ...
   checked: boolean;
   format: CheckFormat;
-  raw: string;          // 원본 셀 값 (디버깅용)
+  raw: string; // 원본 셀 값 (디버깅용)
 }
 
 interface CheckboxCluster {
-  groupLabel: string;        // "이론/실습/사례" | "실습/소스파일"
+  groupLabel: string; // "이론/실습/사례" | "실습/소스파일"
   items: CheckboxItem[];
-  nothingChecked: boolean;   // 군집 내 아무것도 체크 안 됨
+  nothingChecked: boolean; // 군집 내 아무것도 체크 안 됨
 }
 
 function parseCheckboxItem(val: string, knownLabels: string[]): CheckboxItem | null {
@@ -108,24 +108,30 @@ function extractCheckboxClusters(cellVals: string[]): CheckboxCluster[] {
 
   for (const val of cellVals) {
     const g1 = parseCheckboxItem(val, CLUSTER_LABELS.group1);
-    if (g1) { group1Items.push(g1); continue; }
+    if (g1) {
+      group1Items.push(g1);
+      continue;
+    }
 
     const g2 = parseCheckboxItem(val, CLUSTER_LABELS.group2);
-    if (g2) { group2Items.push(g2); continue; }
+    if (g2) {
+      group2Items.push(g2);
+      continue;
+    }
   }
 
   if (group1Items.length > 0) {
     clusters.push({
       groupLabel: '이론/실습/사례',
       items: group1Items,
-      nothingChecked: group1Items.every(i => !i.checked),
+      nothingChecked: group1Items.every((i) => !i.checked),
     });
   }
   if (group2Items.length > 0) {
     clusters.push({
       groupLabel: '실습/소스파일',
       items: group2Items,
-      nothingChecked: group2Items.every(i => !i.checked),
+      nothingChecked: group2Items.every((i) => !i.checked),
     });
   }
 
@@ -136,7 +142,10 @@ function extractCheckboxClusters(cellVals: string[]): CheckboxCluster[] {
 // HWP → TableSchema 추출
 // ============================================================================
 
-async function extractAllFromFile(filePath: string, imageOutputDir: string): Promise<TableSchema[]> {
+async function extractAllFromFile(
+  filePath: string,
+  imageOutputDir: string
+): Promise<TableSchema[]> {
   const data = fs.readFileSync(filePath);
   const uint8Data = new Uint8Array(data);
 
@@ -163,7 +172,6 @@ async function extractAllFromFile(filePath: string, imageOutputDir: string): Pro
 // HTML 렌더링
 // ============================================================================
 
-
 function renderTableSchema(schema: TableSchema, tableIdx: number): string {
   const merges = schema.merges ?? [];
 
@@ -189,14 +197,14 @@ function renderTableSchema(schema: TableSchema, tableIdx: number): string {
 
   for (let rowIdx = 0; rowIdx < schema.rows.length; rowIdx++) {
     const row = schema.rows[rowIdx];
-    const cellVals = row.cells.map(c => String(c.value ?? '').trim());
-    const isLessonRow = cellVals.some(v => v.includes('이론/실습/사례'));
+    const cellVals = row.cells.map((c) => String(c.value ?? '').trim());
+    const isLessonRow = cellVals.some((v) => v.includes('이론/실습/사례'));
 
     let rowClass = '';
 
     if (isLessonRow) {
       const clusters = extractCheckboxClusters(cellVals);
-      const group1 = clusters.find(c => c.groupLabel === '이론/실습/사례');
+      const group1 = clusters.find((c) => c.groupLabel === '이론/실습/사례');
 
       if (group1?.nothingChecked) {
         rowClass = ' class="no-check"';
@@ -223,13 +231,17 @@ function renderTableSchema(schema: TableSchema, tableIdx: number): string {
       }
 
       let content = String(cell.value ?? '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/\n/g, '<br>');
 
       if (cell.images && cell.images.length > 0) {
-        content += cell.images.map(img => {
-          const fname = path.basename(img.src);
-          return `<img src="../table-images/${fname}" style="max-width:160px;max-height:120px;display:block;margin-top:4px;">`;
-        }).join('');
+        content += cell.images
+          .map((img) => {
+            const fname = path.basename(img.src);
+            return `<img src="../table-images/${fname}" style="max-width:160px;max-height:120px;display:block;margin-top:4px;">`;
+          })
+          .join('');
       }
 
       html += `<td${tdAttrs}>${content}</td>`;
@@ -288,18 +300,27 @@ ${body}
 }
 
 function buildIndex(
-  files: Array<{ name: string; htmlName: string; tableCount: number; noCheckCount: number; error?: string }>
+  files: Array<{
+    name: string;
+    htmlName: string;
+    tableCount: number;
+    noCheckCount: number;
+    error?: string;
+  }>
 ): string {
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-  const rows = files.map(f => {
-    const warnCell = f.noCheckCount > 0
-      ? `<td class="warn">⚠ ${f.noCheckCount}개</td>`
-      : `<td class="ok">-</td>`;
-    const nameCell = f.error
-      ? `<td class="err">${esc(f.name)} (오류: ${esc(f.error)})</td>`
-      : `<td><a href="${f.htmlName}">${esc(f.name)}</a></td>`;
-    return `<tr>${nameCell}<td>${f.tableCount}</td>${warnCell}</tr>`;
-  }).join('\n');
+  const rows = files
+    .map((f) => {
+      const warnCell =
+        f.noCheckCount > 0
+          ? `<td class="warn">⚠ ${f.noCheckCount}개</td>`
+          : `<td class="ok">-</td>`;
+      const nameCell = f.error
+        ? `<td class="err">${esc(f.name)} (오류: ${esc(f.error)})</td>`
+        : `<td><a href="${f.htmlName}">${esc(f.name)}</a></td>`;
+      return `<tr>${nameCell}<td>${f.tableCount}</td>${warnCell}</tr>`;
+    })
+    .join('\n');
 
   const totalNoCheck = files.reduce((s, f) => s + f.noCheckCount, 0);
 
@@ -355,15 +376,20 @@ async function main() {
   fs.mkdirSync(path.join(outputDir, 'files'), { recursive: true });
   fs.mkdirSync(imageOutputDir, { recursive: true });
 
-  const hwpFiles = fs.readdirSync(folderPath)
-    .filter(f => f.toLowerCase().endsWith('.hwp'))
+  const hwpFiles = fs
+    .readdirSync(folderPath)
+    .filter((f) => f.toLowerCase().endsWith('.hwp'))
     .sort()
-    .map(f => ({ name: f, full: path.join(folderPath, f) }));
+    .map((f) => ({ name: f, full: path.join(folderPath, f) }));
 
   console.log(`Found ${hwpFiles.length} HWP files → ${outputDir}`);
 
   const indexEntries: Array<{
-    name: string; htmlName: string; tableCount: number; noCheckCount: number; error?: string;
+    name: string;
+    htmlName: string;
+    tableCount: number;
+    noCheckCount: number;
+    error?: string;
   }> = [];
 
   for (const file of hwpFiles) {
@@ -377,16 +403,18 @@ async function main() {
       let noCheckCount = 0;
       for (const schema of schemas) {
         for (const row of schema.rows) {
-          const vals = row.cells.map(c => String(c.value ?? '').trim());
-          if (!vals.some(v => v.includes('이론/실습/사례'))) continue;
+          const vals = row.cells.map((c) => String(c.value ?? '').trim());
+          if (!vals.some((v) => v.includes('이론/실습/사례'))) continue;
           const clusters = extractCheckboxClusters(vals);
-          const g1 = clusters.find(c => c.groupLabel === '이론/실습/사례');
+          const g1 = clusters.find((c) => c.groupLabel === '이론/실습/사례');
           if (g1?.nothingChecked) noCheckCount++;
         }
       }
 
       let body = '';
-      schemas.forEach((schema, i) => { body += renderTableSchema(schema, i); });
+      schemas.forEach((schema, i) => {
+        body += renderTableSchema(schema, i);
+      });
 
       const fileHtml = wrapHtml(file.name, body, schemas.length, noCheckCount);
       fs.writeFileSync(path.join(outputDir, htmlName), fileHtml, 'utf-8');
@@ -395,7 +423,13 @@ async function main() {
       console.log(`  -> ${schemas.length} tables, ${noCheckCount} no-check rows`);
     } catch (err) {
       console.error(`  -> Error: ${err}`);
-      indexEntries.push({ name: file.name, htmlName, tableCount: 0, noCheckCount: 0, error: String(err) });
+      indexEntries.push({
+        name: file.name,
+        htmlName,
+        tableCount: 0,
+        noCheckCount: 0,
+        error: String(err),
+      });
     }
   }
 
