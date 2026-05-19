@@ -1,6 +1,13 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["**/dist/**", "**/build/**", "**/node_modules/**", "**/legacy/**", "**/npm/**"],
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/build/**",
+    "**/node_modules/**",
+    "**/legacy/**",
+    "**/npm/**",
+    "packages/table-manager/**"
+  ],
   "printWidth": 100,
   "tabWidth": 2,
   "useTabs": false,
