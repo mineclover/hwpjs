@@ -23,6 +23,10 @@
     "./extract": {
       "types": "./src/extract/index.ts",
       "default": "./src/extract/index.ts"
+    },
+    "./utils": {
+      "types": "./src/utils/index.ts",
+      "default": "./src/utils/index.ts"
     }
   },
   "dependencies": {
