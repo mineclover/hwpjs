@@ -6,7 +6,8 @@
  * 각 결과에는 어떤 패턴으로 매칭됐는지 MatchInfo가 포함됩니다.
  */
 
-import type { TableSchema } from '../table-schema.js';
+import { transformHwpTablesWithSchema, type TableSchema } from '../table-schema.js';
+import { collectTableSchemas } from '../utils/traverse.js';
 import { tableSchemaToTable } from '../to-table.js';
 import type {
   CollectPattern,
@@ -81,7 +82,12 @@ function matchCellMatches(
   if (!cell) return { matched: false };
 
   const val = String(cell.value ?? '').trim();
-  const re = new RegExp(pattern.pattern);
+  let re: RegExp;
+  try {
+    re = new RegExp(pattern.pattern);
+  } catch {
+    return { matched: false };
+  }
   if (re.test(val)) {
     return {
       matched: true,
@@ -100,7 +106,9 @@ function matchSize(schema: TableSchema, pattern: SizePattern): MatchResult {
   const cols = schema.rows[0]?.cells.length ?? 0;
   const ok =
     (pattern.min_rows === undefined || rows >= pattern.min_rows) &&
-    (pattern.min_cols === undefined || cols >= pattern.min_cols);
+    (pattern.max_rows === undefined || rows <= pattern.max_rows) &&
+    (pattern.min_cols === undefined || cols >= pattern.min_cols) &&
+    (pattern.max_cols === undefined || cols <= pattern.max_cols);
   return ok
     ? { matched: true, info: { pattern_type: 'size' } }
     : { matched: false };
@@ -254,4 +262,36 @@ export function collectWithSpecs<P = unknown>(
   }
 
   return results;
+}
+
+// ============================================================================
+// 배치 헬퍼 — HWP JSON에서 직접 수집
+// ============================================================================
+
+/**
+ * HWP JSON에서 TableSchema 변환과 수집을 한 번에 수행한다.
+ *
+ * toJson() 결과를 JSON.parse한 hwpJson을 바로 전달하면 된다.
+ * transformHwpTablesWithSchema + collectTableSchemas + collectWithSpecs 3단계를 대체한다.
+ *
+ * @example
+ * ```ts
+ * import { toJson } from '@ohah/hwpjs';
+ * import { collectTablesFromHwp } from '@ohah/hwpjs-adapter/collection';
+ * import { ktechTableSpecs } from './ktech-table-specs.js';
+ *
+ * const hwpJson = JSON.parse(toJson(buf));
+ * const collected = collectTablesFromHwp(hwpJson, ktechTableSpecs);
+ * ```
+ */
+export function collectTablesFromHwp<P = unknown>(
+  hwpJson: unknown,
+  specs: TableTypeSpec<P>[],
+  options: CollectOptions = {},
+): CollectedTable<P>[] {
+  const body = (hwpJson as any)?.body_text;
+  if (!body) return [];
+  const transformed = transformHwpTablesWithSchema(body);
+  const schemas = collectTableSchemas(transformed);
+  return collectWithSpecs(schemas, specs, options);
 }

@@ -38,11 +38,13 @@ export interface CellMatchesPattern {
   pattern: string;
 }
 
-/** 최소 행/열 수 조건 */
+/** 행/열 수 범위 조건 */
 export interface SizePattern {
   type: 'size';
   min_rows?: number;
+  max_rows?: number;
   min_cols?: number;
+  max_cols?: number;
 }
 
 /** 모든 하위 패턴을 동시에 만족해야 함 */
