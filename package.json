@@ -45,5 +45,8 @@
   },
   "dependencies": {
     "commander": "^14.0.2"
+  },
+  "overrides": {
+    "vitest": "^3.2.4"
   }
 }

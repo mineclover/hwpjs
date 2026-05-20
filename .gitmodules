@@ -1,3 +1,6 @@
 [submodule "packages/table-manager"]
 	path = packages/table-manager
 	url = https://github.com/mineclover/table-manager
+[submodule "packages/unified-utils"]
+	path = packages/unified-utils
+	url = https://github.com/mineclover/unified-utils.git
