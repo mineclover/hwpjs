@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: false  # table-manager/unified-utils are private; CI does not need them
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -34,6 +36,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: false  # table-manager/unified-utils are private; CI does not need them
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -53,6 +57,8 @@ jobs:
     needs: rust-check
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: false  # table-manager/unified-utils are private; CI does not need them
 
       - uses: dtolnay/rust-toolchain@stable
 
